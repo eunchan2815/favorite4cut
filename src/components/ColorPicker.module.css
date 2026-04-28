@@ -1,0 +1,178 @@
+.wrap {
+  position: relative;
+}
+
+.swatchRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 2px solid var(--line);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.12s, border-color 0.15s;
+  position: relative;
+}
+
+.swatch:hover {
+  transform: scale(1.08);
+}
+
+.active {
+  border-color: #1a1a1a;
+  box-shadow: 0 0 0 2px #fff inset;
+  transform: scale(1.08);
+}
+
+.customSwatch {
+  background:
+    conic-gradient(
+      from 0deg,
+      hsl(0,80%,60%), hsl(60,80%,60%), hsl(120,80%,60%),
+      hsl(180,80%,60%), hsl(240,80%,60%), hsl(300,80%,60%), hsl(360,80%,60%)
+    );
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #1a1a1a;
+}
+
+.customSwatch::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  background: #fff;
+  border-radius: 999px;
+}
+
+.customSwatch svg {
+  position: relative;
+  z-index: 1;
+}
+
+.popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 36px rgba(20, 20, 30, 0.16);
+  padding: 14px;
+  z-index: 50;
+  width: 248px;
+}
+
+.svSquare {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  border-radius: 8px;
+  cursor: crosshair;
+  touch-action: none;
+  overflow: hidden;
+  user-select: none;
+}
+
+.svDot {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.hueSlider {
+  position: relative;
+  width: 100%;
+  height: 14px;
+  margin-top: 14px;
+  border-radius: 999px;
+  cursor: ew-resize;
+  touch-action: none;
+  background: linear-gradient(
+    to right,
+    hsl(0, 100%, 50%) 0%,
+    hsl(60, 100%, 50%) 16.66%,
+    hsl(120, 100%, 50%) 33.33%,
+    hsl(180, 100%, 50%) 50%,
+    hsl(240, 100%, 50%) 66.66%,
+    hsl(300, 100%, 50%) 83.33%,
+    hsl(360, 100%, 50%) 100%
+  );
+}
+
+.hueDot {
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #fff;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.hexRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  background: #fafafb;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px 4px 4px 10px;
+}
+
+.hashLabel {
+  font-size: 11px;
+  font-weight: 800;
+  color: #6b6b73;
+  letter-spacing: 0.06em;
+}
+
+.hexInput {
+  flex: 1;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-family: 'SF Mono', ui-monospace, Menlo, monospace;
+  font-weight: 600;
+  outline: none;
+  text-transform: uppercase;
+  color: #1a1a1a;
+  letter-spacing: 0.04em;
+}
+
+.previewRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.previewSwatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+
+.rgbText {
+  font-size: 11px;
+  color: #6b6b73;
+  font-family: 'SF Mono', ui-monospace, monospace;
+  font-weight: 600;
+}

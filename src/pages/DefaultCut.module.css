@@ -1,0 +1,150 @@
+.page {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 800px 500px at 20% 0%, #fff0f3 0%, transparent 60%),
+    radial-gradient(ellipse 600px 400px at 100% 100%, #eef0ff 0%, transparent 60%),
+    #fafafb;
+  padding: 48px 48px 64px;
+  display: flex;
+  justify-content: center;
+}
+
+.inner {
+  width: 100%;
+  max-width: 1280px;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 22px;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  padding: 0 4px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #111;
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #8a8a90;
+  font-weight: 500;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 28px;
+  align-items: stretch;
+}
+
+@media (max-width: 760px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .page {
+    padding: 32px 20px 48px;
+  }
+}
+
+.card {
+  position: relative;
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 28px 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow:
+    0 1px 2px rgba(20, 20, 30, 0.04),
+    0 8px 24px rgba(20, 20, 30, 0.05);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.card:hover {
+  box-shadow:
+    0 1px 2px rgba(20, 20, 30, 0.05),
+    0 18px 36px rgba(20, 20, 30, 0.09);
+  transform: translateY(-3px);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cardLabel {
+  font-size: 22px;
+  font-weight: 800;
+  color: #111;
+  letter-spacing: -0.01em;
+}
+
+.cardCount {
+  font-size: 12px;
+  font-weight: 700;
+  color: #b0b0b6;
+  letter-spacing: 0.1em;
+}
+
+.options {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  padding: 28px 18px 22px;
+  background: #f6f6f8;
+  border-radius: 16px;
+  flex-wrap: nowrap;
+}
+
+.option {
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  padding: 14px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.12s;
+}
+
+.option:hover {
+  background: #ffffff;
+  border-color: #1a1a1a;
+}
+
+.option:active {
+  transform: scale(0.97);
+}
+
+.optionLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #555;
+  background: #ffffff;
+  border: 1px solid #e5e5ea;
+  border-radius: 999px;
+  padding: 4px 12px;
+  letter-spacing: 0.02em;
+}
+
+.option:hover .optionLabel {
+  background: #1a1a1a;
+  color: #fff;
+  border-color: #1a1a1a;
+}

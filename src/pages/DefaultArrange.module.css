@@ -7,6 +7,7 @@
   padding: 32px 32px 56px;
   display: flex;
   justify-content: center;
+  overflow-x: hidden;
 }
 
 .inner {
@@ -21,16 +22,31 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
 }
 
-.topRight {
+.title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  flex: 1;
+  text-align: center;
+}
+
+.topRightGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topCounter {
   font-size: 13px;
   font-weight: 600;
   color: #6b6b73;
   font-variant-numeric: tabular-nums;
 }
 
-.topRight strong {
+.topCounter strong {
   color: #1a1a1a;
 }
 
@@ -38,6 +54,7 @@
   display: grid;
   grid-template-columns: minmax(280px, 1fr) minmax(360px, 1.1fr);
   gap: 22px;
+  align-items: start;
 }
 
 @media (max-width: 880px) {
@@ -94,6 +111,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+}
+
+.poolHeaderLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .poolTitle {
@@ -110,13 +135,16 @@
 
 .captureGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 
 .captureItem {
   position: relative;
+  display: block;
+  width: 100%;
   aspect-ratio: 1 / 1;
+  min-height: 0;
   border-radius: 10px;
   overflow: hidden;
   border: 2px solid transparent;
@@ -124,6 +152,8 @@
   padding: 0;
   cursor: pointer;
   transition: transform 0.12s, border-color 0.15s;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .captureItem img {
@@ -224,30 +254,151 @@
   cursor: not-allowed;
 }
 
+/* === Mobile bottom sheet (사진 풀) === */
+.mobileSheet {
+  display: none;
+}
+
 @media (max-width: 880px) {
   .page {
-    padding: 16px 12px 32px;
+    padding: 16px 12px calc(12vh + env(safe-area-inset-bottom));
   }
   .inner {
     gap: 14px;
   }
+  .title {
+    font-size: 14px;
+  }
   .frameCard {
     padding: 14px;
     gap: 10px;
-  }
-  .poolCard {
-    padding: 14px;
-    gap: 12px;
+    min-height: calc(100vh - 12vh - 110px);
+    justify-content: center;
   }
   .captureGrid {
-    gap: 8px;
+    gap: 12px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+  .poolHeader {
+    padding: 10px 0 12px;
+    margin: 0;
+  }
+  .poolTitle {
+    font-size: 15px;
+  }
+  .poolHint {
+    font-size: 12px;
+  }
+  /* Desktop pool 숨김 (sheet가 대체) */
+  .poolCard {
+    display: none !important;
+  }
+  /* 모바일에서 카운터 숨겨도 됨 (공간 확보) */
+  .topCounter {
+    display: none;
+  }
+
+  .mobileSheet {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+    /* 닫힌 상태 — 핸들만 살짝 보이게 (사용자가 끌어올려서 사진 선택) */
+    height: 10vh;
+    padding: 0 23px calc(12px + env(safe-area-inset-bottom));
+    z-index: 50;
+    transition: height 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .mobileSheetHalf {
+    height: 50vh;
+  }
+
+  .mobileSheetExpanded {
+    height: 86vh;
+  }
+
+  .sheetBackdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.18);
+    z-index: 49;
+    animation: backdropFadeIn 0.2s ease-out;
+  }
+
+  @keyframes backdropFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .sheetHandleArea {
+    flex-shrink: 0;
+    padding: 14px 0 12px;
+    cursor: grab;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .sheetHandleArea::after {
+    content: '위로 끌어올려 사진 선택';
+    position: absolute;
+    top: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    font-weight: 600;
+    color: #9b9ba2;
+    pointer-events: none;
+    white-space: nowrap;
+    opacity: 1;
+    transition: opacity 0.2s;
+  }
+
+  .mobileSheetExpanded .sheetHandleArea::after {
+    opacity: 0;
+  }
+
+  .sheetHandleArea:active {
+    cursor: grabbing;
+  }
+
+  .sheetHandle {
+    width: 40px;
+    height: 4px;
+    border-radius: 999px;
+    background: #d0d0d4;
+  }
+
+  /* nextBtn은 모바일에서도 BackButton과 동일 사이즈 (10px 18px / 13px) */
   .nextBtn {
     padding: 10px 18px;
     font-size: 13px;
   }
-  .resetBtn {
-    padding: 10px 14px;
-    font-size: 12px;
+
+  .mobileSheet .sheetContent {
+    padding: 4px 0 12px;
+  }
+
+  .sheetContent {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 8px;
+  }
+
+  .sheetContent::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
   }
 }

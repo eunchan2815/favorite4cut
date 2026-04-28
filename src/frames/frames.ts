@@ -29,3 +29,11 @@ export const DEFAULT_FRAME_BG = '#ffffff';
 export function todayCaption(): string {
   return '최애네컷';
 }
+
+export function todayDate(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}.${m}.${day}`;
+}

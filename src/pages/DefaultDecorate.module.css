@@ -80,32 +80,8 @@
   top: 20px;
 }
 
-@media (max-width: 880px) {
-  .page {
-    padding: 16px 12px 32px;
-  }
-  .inner {
-    gap: 14px;
-  }
-  .topBar {
-    gap: 8px;
-  }
-  .title {
-    font-size: 14px;
-  }
-  .doneBtn {
-    padding: 10px 18px;
-    font-size: 13px;
-  }
-  .previewCard {
-    padding: 14px;
-    gap: 8px;
-    position: static;
-  }
-  .controlsCard {
-    padding: 14px;
-    gap: 16px;
-  }
+.mobileSheet {
+  display: none;
 }
 
 .previewHint {
@@ -117,13 +93,59 @@
 .controlsCard {
   background: #fff;
   border-radius: 16px;
-  padding: 22px;
+  padding: 18px;
   box-shadow:
     0 1px 2px rgba(20, 20, 30, 0.04),
     0 8px 24px rgba(20, 20, 30, 0.05);
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 14px;
+}
+
+.controlsContent {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  /* 스크롤바 시각적 숨김 (scroll 동작은 그대로) */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.controlsContent::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.sheetTabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: #f4f4f7;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.sheetTab {
+  flex: 1;
+  padding: 9px 0;
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #6b6b73;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sheetTab:hover:not(.sheetTabActive) {
+  color: #1a1a1a;
+}
+
+.sheetTabActive {
+  background: #1a1a1a;
+  color: #ffffff;
 }
 
 .section {
@@ -333,4 +355,119 @@
   opacity: 0.4;
   cursor: not-allowed;
   text-decoration: none;
+}
+
+/* === Mobile bottom sheet — 파일 맨 끝에 둬서 .controlsCard 베이스 룰을 확실히 오버라이드 === */
+@media (max-width: 880px) {
+  .page {
+    padding: 16px 12px calc(16vh + env(safe-area-inset-bottom));
+  }
+  .inner {
+    gap: 14px;
+  }
+  .topBar {
+    gap: 8px;
+  }
+  .title {
+    font-size: 14px;
+  }
+  .doneBtn {
+    padding: 10px 18px;
+    font-size: 13px;
+  }
+  .previewCard {
+    padding: 14px;
+    gap: 8px;
+    position: static;
+    /* topBar 아래 ~ 시트 위 사이의 가용 공간을 채우고 프레임을 세로 가운데 정렬
+       100vh − sheet(44vh) − topBar+간격 ≈ 46vh */
+    min-height: calc(100vh - 44vh - 110px);
+    justify-content: center;
+  }
+  .controlsCard {
+    display: none !important;
+  }
+
+  .mobileSheet {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+    /* 닫힌 상태 — 핸들 + 탭만 살짝 보이게 */
+    height: 14vh;
+    padding: 0 23px calc(12px + env(safe-area-inset-bottom));
+    z-index: 50;
+    transition: height 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .mobileSheetHalf {
+    height: 50vh;
+  }
+
+  .mobileSheetExpanded {
+    height: 86vh;
+  }
+
+  .sheetBackdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.18);
+    z-index: 49;
+    animation: backdropFadeIn 0.2s ease-out;
+  }
+
+  @keyframes backdropFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .sheetHandleArea {
+    flex-shrink: 0;
+    padding: 8px 0 6px;
+    cursor: grab;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    justify-content: center;
+  }
+
+  .sheetHandleArea:active {
+    cursor: grabbing;
+  }
+
+  .sheetHandle {
+    width: 40px;
+    height: 4px;
+    border-radius: 999px;
+    background: #d0d0d4;
+  }
+
+  .sheetTabs {
+    margin-bottom: 10px;
+  }
+
+  .sheetContent {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+    /* 스크롤바 시각적 숨김 */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .sheetContent::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  .sheetContent .section {
+    margin-bottom: 0;
+  }
 }

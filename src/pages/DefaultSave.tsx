@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BackButton from '../components/BackButton';
+import { todayDate } from '../frames/frames';
 import { useProject } from '../store/ProjectContext';
 import { composeFrame } from '../utils/composeFrame';
 import styles from './DefaultSave.module.css';
@@ -113,10 +114,8 @@ export default function DefaultSave() {
               style={{
                 width: `min(100%, calc(70vh * ${frame.aspect}))`,
                 aspectRatio: frame.aspect,
-                gridTemplateColumns:
-                  frame.captionPosition === 'right' ? '1fr auto' : '1fr',
-                gridTemplateRows:
-                  frame.captionPosition === 'right' ? '1fr' : '1fr auto',
+                gridTemplateColumns: '1fr',
+                gridTemplateRows: '1fr auto',
               }}
               aria-label="이미지 만드는 중"
             >
@@ -131,17 +130,12 @@ export default function DefaultSave() {
                   <div key={i} className={styles.skeletonSlot} />
                 ))}
               </div>
-              {frame.captionPosition === 'right' ? (
-                <span className={styles.skeletonCaptionRight} aria-hidden>
-                  {Array.from(project.caption).map((ch, i) => (
-                    <span key={i}>{ch === ' ' ? ' ' : ch}</span>
-                  ))}
-                </span>
-              ) : (
-                <span className={styles.skeletonCaption} aria-hidden>
-                  {project.caption}
-                </span>
-              )}
+              <span
+                className={`${styles.skeletonCaption} ${frame.captionPosition === 'right' ? styles.skeletonCaptionCorner : ''}`}
+                aria-hidden
+              >
+                {frame.captionPosition === 'right' ? todayDate() : project.caption}
+              </span>
             </div>
           )}
         </div>

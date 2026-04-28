@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProject } from '../store/ProjectContext';
 import FramePreview from '../components/FramePreview';
@@ -27,9 +28,25 @@ function directionLabelOf(f: FrameDef): string {
   return DIRECTION_LABEL[suffix] ?? suffix;
 }
 
+function getBoxScale(): number {
+  if (typeof window === 'undefined') return 1;
+  const w = window.innerWidth;
+  if (w >= 760) return 1;
+  if (w >= 480) return 0.7;
+  if (w >= 380) return 0.55;
+  return 0.45;
+}
+
 export default function DefaultCut() {
   const { frames, project, setLayout } = useProject();
   const navigate = useNavigate();
+  const [boxScale, setBoxScale] = useState(getBoxScale);
+
+  useEffect(() => {
+    const onResize = () => setBoxScale(getBoxScale());
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   const handleSelect = (id: FrameLayoutId) => {
     setLayout(id);
@@ -68,8 +85,8 @@ export default function DefaultCut() {
                         frame={f}
                         slots={emptySlots(f.count)}
                         caption={project.caption}
-                        boxWidth={g.box}
-                        boxHeight={g.box}
+                        boxWidth={Math.round(g.box * boxScale)}
+                        boxHeight={Math.round(g.box * boxScale)}
                         compact
                       />
                       <span className={styles.optionLabel}>{directionLabelOf(f)}</span>

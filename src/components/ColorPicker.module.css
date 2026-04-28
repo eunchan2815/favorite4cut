@@ -27,7 +27,6 @@
 .active {
   border-color: #1a1a1a;
   box-shadow: 0 0 0 2px #fff inset;
-  transform: scale(1.08);
 }
 
 .customSwatch {

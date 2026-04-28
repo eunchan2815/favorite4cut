@@ -47,7 +47,7 @@
 .videoWrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 7 / 5;
   background: #111;
   border-radius: 22px;
   overflow: hidden;
@@ -395,7 +395,7 @@
     color: #fff;
   }
   .videoWrap {
-    aspect-ratio: 3 / 4;
+    aspect-ratio: 4 / 5;
     border-radius: 18px;
     box-shadow: none;
   }

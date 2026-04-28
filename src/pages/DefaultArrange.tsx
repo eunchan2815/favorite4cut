@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BackButton from '../components/BackButton';
 import FramePreview from '../components/FramePreview';
@@ -9,6 +10,11 @@ export default function DefaultArrange() {
   const { project, frame, setSlotPhoto } = useProject();
   const navigate = useNavigate();
   const previewBox = usePreviewBox();
+
+  type SheetState = 'closed' | 'half' | 'expanded';
+  const [sheetState, setSheetState] = useState<SheetState>('closed');
+  const dragStartY = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
 
   const focusedSlot = project.slots.findIndex((s) => !s.photo);
   const filledCount = project.slots.filter((s) => s.photo).length;
@@ -39,14 +45,131 @@ export default function DefaultArrange() {
     });
   };
 
+  // Sheet drag handlers
+  const onHandlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+    dragStartY.current = e.clientY;
+  };
+
+  const onHandlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragStartY.current == null) return;
+    const dy = e.clientY - dragStartY.current;
+    dragStartY.current = null;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+    if (dy < -20) {
+      // 위로 드래그: closed → half → expanded
+      setSheetState((s) => (s === 'closed' ? 'half' : 'expanded'));
+    } else if (dy > 20) {
+      // 아래로 드래그: expanded → half → closed
+      setSheetState((s) => (s === 'expanded' ? 'half' : 'closed'));
+    }
+  };
+
+  const onContentScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (e.currentTarget.scrollTop > 30 && sheetState === 'half') {
+      setSheetState('expanded');
+    }
+  };
+
+  const onContentWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (e.currentTarget.scrollTop === 0 && e.deltaY < -20 && sheetState === 'expanded') {
+      setSheetState('half');
+    }
+  };
+
+  const onContentTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    touchStartY.current = e.touches[0]?.clientY ?? null;
+  };
+
+  const onContentTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (touchStartY.current == null) return;
+    if (e.currentTarget.scrollTop !== 0) return;
+    const dy = (e.touches[0]?.clientY ?? 0) - touchStartY.current;
+    if (dy > 30 && sheetState === 'expanded') {
+      setSheetState('half');
+    } else if (dy < -30 && sheetState === 'half') {
+      setSheetState('expanded');
+    }
+  };
+
+  const onContentTouchEnd = () => {
+    touchStartY.current = null;
+  };
+
+  const renderPoolBody = () => (
+    <>
+      <div className={styles.poolHeader}>
+        <div className={styles.poolHeaderLeft}>
+          <span className={styles.poolTitle}>
+            찍은 사진 {project.captures.length}장
+          </span>
+          <span className={styles.poolHint}>탭하면 현재 슬롯에 들어가요</span>
+        </div>
+        {renderResetBtn()}
+      </div>
+      <div className={styles.captureGrid}>
+        {project.captures.map((src, i) => {
+          const used = usedUrls.has(src);
+          return (
+            <button
+              key={i}
+              type="button"
+              className={`${styles.captureItem} ${used ? styles.used : ''}`}
+              onClick={() => handleCaptureClick(i)}
+              disabled={allFilled || used}
+              aria-label={used ? '이미 사용 중' : `사진 ${i + 1} 선택`}
+            >
+              <img src={src} alt={`captured ${i + 1}`} />
+              {used && <span className={styles.usedBadge}>사용중</span>}
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+
+  const renderTopNext = () => (
+    <button
+      type="button"
+      className={styles.nextBtn}
+      disabled={!allFilled}
+      onClick={() => navigate('/default/decorate')}
+    >
+      다음 →
+    </button>
+  );
+
+  const renderResetBtn = () => (
+    <button
+      type="button"
+      className={styles.resetBtn}
+      onClick={handleResetSlots}
+      disabled={filledCount === 0}
+    >
+      모두 비우기
+    </button>
+  );
+
   return (
     <div className={styles.page}>
       <div className={styles.inner}>
         <div className={styles.topBar}>
           <BackButton to="/default/capture" />
-          <span className={styles.topRight}>
-            <strong>{filledCount}</strong> / {frame.count} 채움
-          </span>
+          <span className={styles.title}>사진 선택</span>
+          <div className={styles.topRightGroup}>
+            <span className={styles.topCounter}>
+              <strong>{filledCount}</strong> / {frame.count}
+            </span>
+            {renderTopNext()}
+          </div>
         </div>
 
         <div className={styles.split}>
@@ -72,49 +195,45 @@ export default function DefaultArrange() {
             </div>
           </div>
 
-          <div className={styles.poolCard}>
-            <div className={styles.poolHeader}>
-              <span className={styles.poolTitle}>찍은 사진 {project.captures.length}장</span>
-              <span className={styles.poolHint}>탭하면 현재 슬롯에 들어가요</span>
-            </div>
-            <div className={styles.captureGrid}>
-              {project.captures.map((src, i) => {
-                const used = usedUrls.has(src);
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    className={`${styles.captureItem} ${used ? styles.used : ''}`}
-                    onClick={() => handleCaptureClick(i)}
-                    disabled={allFilled || used}
-                    aria-label={used ? '이미 사용 중' : `사진 ${i + 1} 선택`}
-                  >
-                    <img src={src} alt={`captured ${i + 1}`} />
-                    {used && <span className={styles.usedBadge}>사용중</span>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          {/* Desktop pool — hidden on mobile via CSS */}
+          <div className={styles.poolCard}>{renderPoolBody()}</div>
         </div>
+      </div>
 
-        <div className={styles.bottomBar}>
-          <button
-            type="button"
-            className={styles.resetBtn}
-            onClick={handleResetSlots}
-            disabled={filledCount === 0}
-          >
-            모두 비우기
-          </button>
-          <button
-            type="button"
-            className={styles.nextBtn}
-            disabled={!allFilled}
-            onClick={() => navigate('/default/decorate')}
-          >
-            다음 →
-          </button>
+      {/* Mobile sheet backdrop — 빈 영역 클릭하면 닫힘 */}
+      {sheetState !== 'closed' && (
+        <div
+          className={styles.sheetBackdrop}
+          onClick={() => setSheetState('closed')}
+        />
+      )}
+
+      {/* Mobile sheet — hidden on desktop via CSS */}
+      <div
+        className={`${styles.mobileSheet} ${sheetState === 'half' ? styles.mobileSheetHalf : ''} ${sheetState === 'expanded' ? styles.mobileSheetExpanded : ''}`}
+        onClick={() => {
+          if (sheetState === 'closed') setSheetState('half');
+        }}
+      >
+        <div
+          className={styles.sheetHandleArea}
+          onPointerDown={onHandlePointerDown}
+          onPointerUp={onHandlePointerUp}
+          onPointerCancel={onHandlePointerUp}
+          aria-label="시트 확장/축소"
+          role="button"
+        >
+          <div className={styles.sheetHandle} />
+        </div>
+        <div
+          className={styles.sheetContent}
+          onScroll={onContentScroll}
+          onWheel={onContentWheel}
+          onTouchStart={onContentTouchStart}
+          onTouchMove={onContentTouchMove}
+          onTouchEnd={onContentTouchEnd}
+        >
+          {renderPoolBody()}
         </div>
       </div>
     </div>

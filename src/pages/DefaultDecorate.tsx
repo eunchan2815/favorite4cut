@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ColorPicker from '../components/ColorPicker';
 import FramePreview from '../components/FramePreview';
@@ -49,6 +50,14 @@ const FILTERS: { id: PhotoFilter; label: string; css: string }[] = [
   { id: 'cool', label: '쿨톤', css: 'hue-rotate(-12deg) saturate(1.1) brightness(1.04)' },
 ];
 
+type Tab = 'color' | 'bg' | 'filter' | 'sticker';
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'color', label: '색' },
+  { id: 'bg', label: '배경' },
+  { id: 'filter', label: '필터' },
+  { id: 'sticker', label: '스티커' },
+];
+
 export default function DefaultDecorate() {
   const {
     project,
@@ -65,9 +74,208 @@ export default function DefaultDecorate() {
   } = useProject();
   const navigate = useNavigate();
   const previewBox = usePreviewBox();
+  const [tab, setTab] = useState<Tab>('color');
+  type SheetState = 'closed' | 'half' | 'expanded';
+  const [sheetState, setSheetState] = useState<SheetState>('closed');
+  const [autoSelectStickerId, setAutoSelectStickerId] = useState<string | null>(null);
+  const dragStartY = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  // 스티커 추가 — 새 id로 자동 선택 + 시트 닫기
+  const handleAddSticker = (stickerLibId: string) => {
+    const newId = addSticker(stickerLibId);
+    setAutoSelectStickerId(newId);
+    setSheetState('closed');
+  };
+
+  const onHandlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+    dragStartY.current = e.clientY;
+  };
+
+  const onHandlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragStartY.current == null) return;
+    const dy = e.clientY - dragStartY.current;
+    dragStartY.current = null;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+    if (dy < -20) {
+      setSheetState((s) => (s === 'closed' ? 'half' : 'expanded'));
+    } else if (dy > 20) {
+      setSheetState((s) => (s === 'expanded' ? 'half' : 'closed'));
+    }
+  };
+
+  const onContentScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (e.currentTarget.scrollTop > 30 && sheetState === 'half') {
+      setSheetState('expanded');
+    }
+  };
+
+  const onContentWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (
+      e.currentTarget.scrollTop === 0 &&
+      e.deltaY < -20 &&
+      sheetState === 'expanded'
+    ) {
+      setSheetState('half');
+    }
+  };
+
+  const onContentTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    touchStartY.current = e.touches[0]?.clientY ?? null;
+  };
+
+  const onContentTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (touchStartY.current == null) return;
+    if (e.currentTarget.scrollTop !== 0) return;
+    const dy = (e.touches[0]?.clientY ?? 0) - touchStartY.current;
+    if (dy > 30 && sheetState === 'expanded') {
+      setSheetState('half');
+    } else if (dy < -30 && sheetState === 'half') {
+      setSheetState('expanded');
+    }
+  };
+
+  const onContentTouchEnd = () => {
+    touchStartY.current = null;
+  };
 
   const handleDone = () => {
     navigate('/default/save');
+  };
+
+  const renderColorSection = () => (
+    <div className={styles.section}>
+      <span className={styles.sectionLabel}>프레임 색</span>
+      <ColorPicker
+        value={project.frameBg}
+        presets={FRAME_COLORS}
+        onChange={setFrameBg}
+      />
+    </div>
+  );
+
+  const renderBgSection = () => (
+    <div className={styles.section}>
+      <span className={styles.sectionLabel}>프레임 배경</span>
+      <div className={styles.bgImageRow}>
+        <button
+          type="button"
+          className={`${styles.bgImageCard} ${styles.bgImageNone} ${project.frameBgImage === null ? styles.bgImageActive : ''}`}
+          onClick={() => setFrameBgImage(null)}
+          aria-label="배경 이미지 없음"
+        >
+          <span className={styles.bgImageNoneLabel}>없음</span>
+        </button>
+        {FRAME_BG_IMAGES.map((src) => {
+          const active = project.frameBgImage === src;
+          return (
+            <button
+              key={src}
+              type="button"
+              className={`${styles.bgImageCard} ${active ? styles.bgImageActive : ''}`}
+              onClick={() => setFrameBgImage(src)}
+              aria-label={`배경 이미지 ${src}`}
+            >
+              <img src={src} alt="" />
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const renderFilterSection = () => (
+    <div className={styles.section}>
+      <span className={styles.sectionLabel}>사진 필터</span>
+      <div className={styles.filterRow}>
+        {FILTERS.map(({ id, label, css }) => {
+          const active = project.filter === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              className={`${styles.filterCard} ${active ? styles.filterCardActive : ''}`}
+              onClick={() => setFilter(id)}
+            >
+              <div className={styles.filterThumb}>
+                <img src="/stella.jpg" alt="" style={{ filter: css }} />
+              </div>
+              <span className={styles.filterLabel}>{label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const renderStickerSection = () => (
+    <div className={styles.section}>
+      <span className={styles.sectionLabel}>스티커</span>
+      <span className={styles.sectionHint}>탭하면 프레임 가운데에 추가돼요</span>
+      <div className={styles.stickerGroups}>
+        {CATEGORY_ORDER.map((cat) => {
+          const items = STICKER_LIB.filter((s) => s.category === cat);
+          if (items.length === 0) return null;
+          return (
+            <div key={cat} className={styles.stickerGroup}>
+              <span className={styles.stickerGroupLabel}>
+                {CATEGORY_LABELS[cat]}{' '}
+                <span className={styles.stickerGroupCount}>{items.length}</span>
+              </span>
+              <div className={styles.stickerPalette}>
+                {items.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    className={styles.stickerBtn}
+                    onClick={() => handleAddSticker(s.id)}
+                    aria-label={s.name}
+                    title={s.name}
+                  >
+                    <img
+                      src={s.image}
+                      alt=""
+                      className={styles.stickerBtnArt}
+                      draggable={false}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <button
+        type="button"
+        className={styles.clearLink}
+        onClick={clearStickers}
+        disabled={project.stickers.length === 0}
+      >
+        스티커 모두 지우기 ({project.stickers.length})
+      </button>
+    </div>
+  );
+
+  const renderTabContent = () => {
+    switch (tab) {
+      case 'color':
+        return renderColorSection();
+      case 'bg':
+        return renderBgSection();
+      case 'filter':
+        return renderFilterSection();
+      case 'sticker':
+        return renderStickerSection();
+    }
   };
 
   return (
@@ -103,124 +311,78 @@ export default function DefaultDecorate() {
               onStickerScale={scaleSticker}
               onStickerRotate={rotateSticker}
               onStickerRemove={removeSticker}
+              autoSelectStickerId={autoSelectStickerId}
             />
             <span className={styles.previewHint}>
               스티커 탭 → 드래그 이동 · 모서리 크기 · 위 핸들 회전 · ✕ 삭제
             </span>
           </div>
 
+          {/* Desktop — same tab UX as mobile sheet, just embedded as side card */}
           <div className={styles.controlsCard}>
-            <div className={styles.section}>
-              <span className={styles.sectionLabel}>프레임 색</span>
-              <ColorPicker
-                value={project.frameBg}
-                presets={FRAME_COLORS}
-                onChange={setFrameBg}
-              />
-            </div>
-
-            <div className={styles.section}>
-              <span className={styles.sectionLabel}>프레임 배경</span>
-              <div className={styles.bgImageRow}>
+            <div className={styles.sheetTabs}>
+              {TABS.map((t) => (
                 <button
+                  key={t.id}
                   type="button"
-                  className={`${styles.bgImageCard} ${styles.bgImageNone} ${project.frameBgImage === null ? styles.bgImageActive : ''}`}
-                  onClick={() => setFrameBgImage(null)}
-                  aria-label="배경 이미지 없음"
+                  className={`${styles.sheetTab} ${tab === t.id ? styles.sheetTabActive : ''}`}
+                  onClick={() => setTab(t.id)}
                 >
-                  <span className={styles.bgImageNoneLabel}>없음</span>
+                  {t.label}
                 </button>
-                {FRAME_BG_IMAGES.map((src) => {
-                  const active = project.frameBgImage === src;
-                  return (
-                    <button
-                      key={src}
-                      type="button"
-                      className={`${styles.bgImageCard} ${active ? styles.bgImageActive : ''}`}
-                      onClick={() => setFrameBgImage(src)}
-                      aria-label={`배경 이미지 ${src}`}
-                    >
-                      <img src={src} alt="" />
-                    </button>
-                  );
-                })}
-              </div>
+              ))}
             </div>
-
-            <div className={styles.section}>
-              <span className={styles.sectionLabel}>사진 필터</span>
-              <div className={styles.filterRow}>
-                {FILTERS.map(({ id, label, css }) => {
-                  const active = project.filter === id;
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      className={`${styles.filterCard} ${active ? styles.filterCardActive : ''}`}
-                      onClick={() => setFilter(id)}
-                    >
-                      <div className={styles.filterThumb}>
-                        <img
-                          src="/stella.jpg"
-                          alt=""
-                          style={{ filter: css }}
-                        />
-                      </div>
-                      <span className={styles.filterLabel}>{label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className={styles.section}>
-              <span className={styles.sectionLabel}>스티커</span>
-              <span className={styles.sectionHint}>
-                탭하면 프레임 가운데에 추가돼요
-              </span>
-              <div className={styles.stickerGroups}>
-                {CATEGORY_ORDER.map((cat) => {
-                  const items = STICKER_LIB.filter((s) => s.category === cat);
-                  if (items.length === 0) return null;
-                  return (
-                    <div key={cat} className={styles.stickerGroup}>
-                      <span className={styles.stickerGroupLabel}>
-                        {CATEGORY_LABELS[cat]}{' '}
-                        <span className={styles.stickerGroupCount}>{items.length}</span>
-                      </span>
-                      <div className={styles.stickerPalette}>
-                        {items.map((s) => (
-                          <button
-                            key={s.id}
-                            type="button"
-                            className={styles.stickerBtn}
-                            onClick={() => addSticker(s.id)}
-                            aria-label={s.name}
-                            title={s.name}
-                          >
-                            <img
-                              src={s.image}
-                              alt=""
-                              className={styles.stickerBtnArt}
-                              draggable={false}
-                            />
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <button
-                type="button"
-                className={styles.clearLink}
-                onClick={clearStickers}
-                disabled={project.stickers.length === 0}
-              >
-                스티커 모두 지우기 ({project.stickers.length})
-              </button>
-            </div>
+            <div className={styles.controlsContent}>{renderTabContent()}</div>
           </div>
+        </div>
+      </div>
+
+      {/* Mobile sheet backdrop */}
+      {sheetState !== 'closed' && (
+        <div
+          className={styles.sheetBackdrop}
+          onClick={() => setSheetState('closed')}
+        />
+      )}
+
+      {/* Mobile — bottom sheet with tabs */}
+      <div
+        className={`${styles.mobileSheet} ${sheetState === 'half' ? styles.mobileSheetHalf : ''} ${sheetState === 'expanded' ? styles.mobileSheetExpanded : ''}`}
+        onClick={() => {
+          if (sheetState === 'closed') setSheetState('half');
+        }}
+      >
+        <div
+          className={styles.sheetHandleArea}
+          onPointerDown={onHandlePointerDown}
+          onPointerUp={onHandlePointerUp}
+          onPointerCancel={onHandlePointerUp}
+          aria-label="시트 확장/축소"
+          role="button"
+        >
+          <div className={styles.sheetHandle} />
+        </div>
+        <div className={styles.sheetTabs}>
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className={`${styles.sheetTab} ${tab === t.id ? styles.sheetTabActive : ''}`}
+              onClick={() => setTab(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div
+          className={styles.sheetContent}
+          onScroll={onContentScroll}
+          onWheel={onContentWheel}
+          onTouchStart={onContentTouchStart}
+          onTouchMove={onContentTouchMove}
+          onTouchEnd={onContentTouchEnd}
+        >
+          {renderTabContent()}
         </div>
       </div>
     </div>

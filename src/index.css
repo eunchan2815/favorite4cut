@@ -57,6 +57,9 @@ body,
   scrollbar-width: none;
   /* IE/Edge */
   -ms-overflow-style: none;
+  /* 페이지 끝에서 더 끌어당겨도 bounce / pull-to-refresh 안 일어나게 */
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
 }
 
 html::-webkit-scrollbar,

@@ -6,12 +6,16 @@ export interface BoxSize {
 }
 
 export function getPreviewBoxForViewport(): BoxSize {
-  if (typeof window === 'undefined') return { w: 460, h: 580 };
+  if (typeof window === 'undefined') return { w: 540, h: 700 };
   const ww = window.innerWidth;
-  if (ww >= 880) return { w: 460, h: 580 };
-  if (ww >= 600) return { w: 380, h: 500 };
-  if (ww >= 420) return { w: 300, h: 420 };
-  return { w: Math.max(220, ww - 56), h: Math.max(300, ww - 56 + 100) };
+  const vh = window.innerHeight;
+  // 모바일에선 시트(닫힘 ~12vh)와 topBar 영역 빼고 78vh 정도가 안전
+  const desktopH = vh * 0.86;
+  const mobileH = vh * 0.78;
+  if (ww >= 880) return { w: 460, h: desktopH };
+  if (ww >= 600) return { w: 440, h: mobileH };
+  if (ww >= 420) return { w: Math.min(400, ww - 20), h: mobileH };
+  return { w: Math.max(300, ww - 20), h: mobileH };
 }
 
 const getBoxFromViewport = getPreviewBoxForViewport;

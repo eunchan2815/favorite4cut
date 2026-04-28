@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { todayDate } from '../frames/frames';
 import type {
   FrameDef,
   PhotoFilter,
@@ -27,6 +28,8 @@ interface Props {
   onStickerScale?: (id: string, scale: number) => void;
   onStickerRotate?: (id: string, rotation: number) => void;
   onStickerRemove?: (id: string) => void;
+  /** When this id changes to a non-null value, that sticker becomes selected. */
+  autoSelectStickerId?: string | null;
 }
 
 const FILTER_CSS: Record<PhotoFilter, string> = {
@@ -97,7 +100,6 @@ type DragState =
 export default function FramePreview({
   frame,
   slots,
-  caption,
   width,
   height,
   boxWidth,
@@ -113,9 +115,10 @@ export default function FramePreview({
   onStickerScale,
   onStickerRotate,
   onStickerRemove,
+  autoSelectStickerId,
 }: Props) {
   const { w, h } = computeSize(frame, width, height, boxWidth, boxHeight);
-  const captionRight = frame.captionPosition === 'right';
+  const captionAtRight = frame.captionPosition === 'right';
   const interactive = Boolean(onSlotClick);
 
   const cardCls = `${styles.card} ${compact ? styles.cardCompact : ''}`;
@@ -125,29 +128,22 @@ export default function FramePreview({
   const cardRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const [selectedSticker, setSelectedSticker] = useState<string | null>(null);
-  const captionColor = '#000000';
 
-  const captionEl = captionRight ? (
+  // 외부에서 새 스티커 추가 후 자동 선택 트리거
+  useEffect(() => {
+    if (autoSelectStickerId) {
+      setSelectedSticker(autoSelectStickerId);
+    }
+  }, [autoSelectStickerId]);
+
+  // 모든 프레임에 빈티지 톤으로 오늘 날짜만 표시
+  const displayCaption = todayDate();
+
+  const captionEl = (
     <div
-      className={`${styles.captionRight} ${compact ? styles.captionRightCompact : ''}`}
-      style={{ color: captionColor }}
+      className={`${styles.captionBottom} ${captionAtRight ? styles.captionBottomRight : ''} ${compact ? styles.captionBottomCompact : ''}`}
     >
-      {compact ? null : (
-        <span className={styles.captionInnerVertical}>
-          {Array.from(caption).map((ch, i) => (
-            <span key={i} className={styles.captionChar}>
-              {ch === ' ' ? ' ' : ch}
-            </span>
-          ))}
-        </span>
-      )}
-    </div>
-  ) : (
-    <div
-      className={`${styles.captionBottom} ${compact ? styles.captionBottomCompact : ''}`}
-      style={{ color: captionColor }}
-    >
-      {compact ? null : <span className={styles.captionInner}>{caption}</span>}
+      {compact ? null : <span className={styles.captionInner}>{displayCaption}</span>}
     </div>
   );
 
@@ -270,8 +266,8 @@ export default function FramePreview({
   const cardStyle: React.CSSProperties = {
     width: `${Math.round(w)}px`,
     height: `${Math.round(h)}px`,
-    gridTemplateColumns: captionRight ? '1fr auto' : '1fr',
-    gridTemplateRows: captionRight ? '1fr' : '1fr auto',
+    gridTemplateColumns: '1fr',
+    gridTemplateRows: '1fr auto',
     backgroundColor: bg ?? undefined,
     position: 'relative',
   };

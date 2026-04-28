@@ -11,7 +11,6 @@ import type {
   FrameLayoutId,
   Mode,
   PhotoFilter,
-  PlacedSticker,
   Project,
   Slot,
 } from '../types';
@@ -37,7 +36,7 @@ interface ProjectContextValue {
   setFrameBg: (color: string) => void;
   setFrameBgImage: (url: string | null) => void;
   setFilter: (filter: PhotoFilter) => void;
-  addSticker: (stickerId: string) => void;
+  addSticker: (stickerId: string) => string;
   moveSticker: (id: string, x: number, y: number) => void;
   scaleSticker: (id: string, scale: number) => void;
   rotateSticker: (id: string, rotation: number) => void;
@@ -174,18 +173,23 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     setProject((p) => ({ ...p, filter }));
   }, []);
 
-  const addSticker = useCallback((stickerId: string) => {
-    setProject((p) => {
-      const sticker: PlacedSticker = {
-        id: nextStickerId(),
-        stickerId,
-        x: 0.5,
-        y: 0.5,
-        scale: 1.6,
-        rotation: 0,
-      };
-      return { ...p, stickers: [...p.stickers, sticker] };
-    });
+  const addSticker = useCallback((stickerId: string): string => {
+    const newId = nextStickerId();
+    setProject((p) => ({
+      ...p,
+      stickers: [
+        ...p.stickers,
+        {
+          id: newId,
+          stickerId,
+          x: 0.5,
+          y: 0.5,
+          scale: 1.6,
+          rotation: 0,
+        },
+      ],
+    }));
+    return newId;
   }, []);
 
   const moveSticker = useCallback((id: string, x: number, y: number) => {

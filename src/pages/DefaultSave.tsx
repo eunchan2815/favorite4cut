@@ -50,7 +50,9 @@ export default function DefaultSave() {
     if (!previewUrl) return;
     const a = document.createElement('a');
     a.href = previewUrl;
-    a.download = `favoritecut-${Date.now()}.png`;
+    const now = new Date();
+    const ymd = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+    a.download = `favorite4cut-${ymd}.png`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -59,7 +61,7 @@ export default function DefaultSave() {
 
   const handleShareInstagram = async () => {
     if (!blob) return;
-    const file = new File([blob], 'favoritecut.png', { type: 'image/png' });
+    const file = new File([blob], 'favorite4cut.png', { type: 'image/png' });
 
     // 1) Web Share API (iOS Safari · Android Chrome)
     const navAny = navigator as Navigator & {

@@ -118,6 +118,12 @@ export default function DefaultArrange() {
       <div className={styles.captureGrid}>
         {project.captures.map((src, i) => {
           const used = usedUrls.has(src);
+          // favorite 모드: 이 capture는 (i % 4)번 슬롯에서 찍힘 → 해당 슬롯의 최애 오버레이 표시
+          const slotForCapture = i % project.slots.length;
+          const fav =
+            project.mode === 'favorite'
+              ? project.slots[slotForCapture]?.favorite
+              : undefined;
           return (
             <button
               key={i}
@@ -128,6 +134,18 @@ export default function DefaultArrange() {
               aria-label={used ? '이미 사용 중' : `사진 ${i + 1} 선택`}
             >
               <img src={src} alt={`captured ${i + 1}`} />
+              {fav && (
+                <img
+                  src={fav.src}
+                  alt=""
+                  className={styles.captureFavoriteOverlay}
+                  style={{
+                    opacity: fav.opacity,
+                    transform: `translate(-50%, -50%) translate(${(fav.x - 0.5) * 100}%, ${(fav.y - 0.5) * 100}%) scale(${fav.scale}) rotate(${fav.rotation}deg)`,
+                  }}
+                  draggable={false}
+                />
+              )}
               {used && <span className={styles.usedBadge}>사용중</span>}
             </button>
           );

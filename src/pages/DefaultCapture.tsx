@@ -9,8 +9,10 @@ import styles from './DefaultCapture.module.css';
 const COUNTDOWN_SEC = 10;
 
 export default function DefaultCapture() {
-  const { project, addCapture, removeCapture, clearCaptures, clearStickers } =
+  const { project, frame, addCapture, removeCapture, clearCaptures, clearStickers } =
     useProject();
+  // 슬롯 한 칸의 실제 비율(W/H) — 카메라 박스를 이 비율로 맞춰서 WYSIWYG
+  const slotAspect = (frame.aspect * frame.rows) / frame.cols;
   const { videoRef, ready, error } = useCamera();
   const navigate = useNavigate();
 
@@ -82,20 +84,51 @@ export default function DefaultCapture() {
     <div className={styles.page}>
       <div className={styles.inner}>
         <div className={styles.topBar}>
-          <BackButton to="/default" />
-          <span className={styles.titleLabel}>10초 뒤에 사진이 자동으로 찍혀요</span>
+          <BackButton
+            to={project.mode === 'favorite' ? '/favorite/arrange' : '/default'}
+          />
+          <span className={styles.titleLabel}>
+            {project.mode === 'favorite' && !allDone
+              ? `${(taken % project.slots.length) + 1}번 슬롯 · 10초 뒤 자동 촬영`
+              : '10초 뒤에 사진이 자동으로 찍혀요'}
+          </span>
           <span className={styles.counter}>
             {taken} / {CAPTURE_TARGET}
           </span>
         </div>
 
-        <div className={styles.videoWrap}>
+        <div
+          className={styles.videoWrap}
+          style={{
+            aspectRatio: slotAspect,
+            ['--slot-aspect' as string]: slotAspect,
+          }}
+        >
           <video
             ref={videoRef}
             className={styles.video}
             playsInline
             muted
           />
+
+          {/* favorite 모드: 1→2→3→4 순환으로 현재 슬롯 최애 사진 오버레이 */}
+          {project.mode === 'favorite' && !allDone && (() => {
+            const slotIdx = taken % project.slots.length;
+            const fav = project.slots[slotIdx]?.favorite;
+            if (!fav) return null;
+            return (
+              <img
+                src={fav.src}
+                alt=""
+                className={styles.favoriteCameraOverlay}
+                style={{
+                  opacity: fav.opacity * 0.85,
+                  transform: `translate(-50%, -50%) translate(${(fav.x - 0.5) * 100}%, ${(fav.y - 0.5) * 100}%) scale(${fav.scale}) rotate(${fav.rotation}deg)`,
+                }}
+                draggable={false}
+              />
+            );
+          })()}
 
           {!error && <div className={styles.gridLines} />}
 
@@ -170,9 +203,26 @@ export default function DefaultCapture() {
                 </div>
               );
             }
+            const slotIdx = i % project.slots.length;
+            const fav =
+              project.mode === 'favorite'
+                ? project.slots[slotIdx]?.favorite
+                : undefined;
             return (
               <div key={i} className={`${styles.thumb} ${styles.filled}`}>
                 <img src={src} alt={`captured ${i + 1}`} />
+                {fav && (
+                  <img
+                    src={fav.src}
+                    alt=""
+                    className={styles.thumbFavoriteOverlay}
+                    style={{
+                      opacity: fav.opacity,
+                      transform: `translate(-50%, -50%) translate(${(fav.x - 0.5) * 100}%, ${(fav.y - 0.5) * 100}%) scale(${fav.scale}) rotate(${fav.rotation}deg)`,
+                    }}
+                    draggable={false}
+                  />
+                )}
                 <button
                   type="button"
                   className={styles.removeBtn}

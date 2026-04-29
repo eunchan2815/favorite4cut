@@ -298,10 +298,32 @@ export default function FramePreview({
           const slotCls = `${slotClsBase} ${isFocused ? styles.slotFocused : ''}`;
           const photoStyle =
             filter !== 'none' ? { filter: FILTER_CSS[filter] } : undefined;
-          const content = slot.photo ? (
+          const photo = slot.photo ? (
             <img src={slot.photo} alt="" className={styles.photo} style={photoStyle} />
-          ) : compact ? null : (
-            <span className={styles.placeholderNum}>{slot.index + 1}</span>
+          ) : null;
+          // favorite는 슬롯에 셀카가 들어왔을 때만 함께 표시 (배치 단계에선 빈 슬롯)
+          const favoriteOverlay = slot.favorite && slot.photo ? (
+            <img
+              src={slot.favorite.src}
+              alt=""
+              className={styles.favoriteOverlay}
+              style={{
+                opacity: slot.favorite.opacity,
+                transform: `translate(-50%, -50%) translate(${(slot.favorite.x - 0.5) * 100}%, ${(slot.favorite.y - 0.5) * 100}%) scale(${slot.favorite.scale})${slot.favorite.flipped ? ' scaleX(-1)' : ''} rotate(${slot.favorite.rotation}deg)`,
+              }}
+              draggable={false}
+            />
+          ) : null;
+          const placeholder =
+            !photo && !favoriteOverlay && !compact ? (
+              <span className={styles.placeholderNum}>{slot.index + 1}</span>
+            ) : null;
+          const content = (
+            <>
+              {photo}
+              {favoriteOverlay}
+              {placeholder}
+            </>
           );
           return interactive ? (
             <button

@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import type {
+  FavoriteOverlay,
   FrameLayoutId,
   Mode,
   PhotoFilter,
@@ -22,14 +23,21 @@ import {
   todayCaption,
 } from '../frames/frames';
 
+interface UserLibrary {
+  stickers: string[];
+  bgs: string[];
+}
+
 interface ProjectContextValue {
   project: Project;
   frame: ReturnType<typeof getFrame>;
   frames: typeof FRAMES;
+  userLibrary: UserLibrary;
   setMode: (mode: Mode) => void;
   setLayout: (layoutId: FrameLayoutId) => void;
   setCaption: (caption: string) => void;
   setSlotPhoto: (index: number, dataUrl: string | null) => void;
+  setSlotFavorite: (index: number, favorite: FavoriteOverlay | null) => void;
   addCapture: (dataUrl: string) => void;
   removeCapture: (index: number) => void;
   clearCaptures: () => void;
@@ -42,6 +50,10 @@ interface ProjectContextValue {
   rotateSticker: (id: string, rotation: number) => void;
   removeSticker: (id: string) => void;
   clearStickers: () => void;
+  addUserSticker: (dataUrl: string) => void;
+  removeUserSticker: (dataUrl: string) => void;
+  addUserBg: (dataUrl: string) => void;
+  removeUserBg: (dataUrl: string) => void;
   reset: () => void;
 }
 
@@ -77,6 +89,7 @@ function nextStickerId(): string {
 }
 
 const STORAGE_KEY = 'favoritecut:project:v1';
+const USER_LIB_KEY = 'favoritecut:user-library:v1';
 
 function loadStored(): Project | null {
   if (typeof window === 'undefined') return null;
@@ -112,15 +125,46 @@ function clearStored() {
   }
 }
 
+function loadUserLibrary(): UserLibrary {
+  if (typeof window === 'undefined') return { stickers: [], bgs: [] };
+  try {
+    const raw = window.localStorage.getItem(USER_LIB_KEY);
+    if (!raw) return { stickers: [], bgs: [] };
+    const parsed = JSON.parse(raw) as Partial<UserLibrary>;
+    return {
+      stickers: Array.isArray(parsed.stickers) ? parsed.stickers.filter((s): s is string => typeof s === 'string') : [],
+      bgs: Array.isArray(parsed.bgs) ? parsed.bgs.filter((s): s is string => typeof s === 'string') : [],
+    };
+  } catch {
+    return { stickers: [], bgs: [] };
+  }
+}
+
+function persistUserLibrary(lib: UserLibrary) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(USER_LIB_KEY, JSON.stringify(lib));
+  } catch {
+    // ignore quota
+  }
+}
+
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const [project, setProject] = useState<Project>(
     () => loadStored() ?? initialProject('default')
+  );
+  const [userLibrary, setUserLibrary] = useState<UserLibrary>(() =>
+    loadUserLibrary()
   );
 
   // Persist on every change so refresh / accidental tab close keeps state.
   useEffect(() => {
     persist(project);
   }, [project]);
+
+  useEffect(() => {
+    persistUserLibrary(userLibrary);
+  }, [userLibrary]);
 
   const setMode = useCallback((mode: Mode) => {
     setProject(() => initialProject(mode));
@@ -145,6 +189,20 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       ),
     }));
   }, []);
+
+  const setSlotFavorite = useCallback(
+    (index: number, favorite: FavoriteOverlay | null) => {
+      setProject((p) => ({
+        ...p,
+        slots: p.slots.map((s) =>
+          s.index === index
+            ? { ...s, favorite: favorite ?? undefined }
+            : s
+        ),
+      }));
+    },
+    []
+  );
 
   const addCapture = useCallback((dataUrl: string) => {
     setProject((p) => ({ ...p, captures: [...p.captures, dataUrl] }));
@@ -224,6 +282,36 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     setProject((p) => ({ ...p, stickers: [] }));
   }, []);
 
+  const addUserSticker = useCallback((dataUrl: string) => {
+    if (!dataUrl.startsWith('data:image/')) return;
+    setUserLibrary((lib) => {
+      if (lib.stickers.includes(dataUrl)) return lib;
+      return { ...lib, stickers: [dataUrl, ...lib.stickers] };
+    });
+  }, []);
+
+  const removeUserSticker = useCallback((dataUrl: string) => {
+    setUserLibrary((lib) => ({
+      ...lib,
+      stickers: lib.stickers.filter((s) => s !== dataUrl),
+    }));
+  }, []);
+
+  const addUserBg = useCallback((dataUrl: string) => {
+    if (!dataUrl.startsWith('data:image/')) return;
+    setUserLibrary((lib) => {
+      if (lib.bgs.includes(dataUrl)) return lib;
+      return { ...lib, bgs: [dataUrl, ...lib.bgs] };
+    });
+  }, []);
+
+  const removeUserBg = useCallback((dataUrl: string) => {
+    setUserLibrary((lib) => ({
+      ...lib,
+      bgs: lib.bgs.filter((s) => s !== dataUrl),
+    }));
+  }, []);
+
   const reset = useCallback(() => {
     clearStored();
     setProject((p) => initialProject(p.mode));
@@ -234,10 +322,12 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       project,
       frame: getFrame(project.layoutId),
       frames: FRAMES,
+      userLibrary,
       setMode,
       setLayout,
       setCaption,
       setSlotPhoto,
+      setSlotFavorite,
       addCapture,
       removeCapture,
       clearCaptures,
@@ -250,14 +340,20 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       rotateSticker,
       removeSticker,
       clearStickers,
+      addUserSticker,
+      removeUserSticker,
+      addUserBg,
+      removeUserBg,
       reset,
     }),
     [
       project,
+      userLibrary,
       setMode,
       setLayout,
       setCaption,
       setSlotPhoto,
+      setSlotFavorite,
       addCapture,
       removeCapture,
       clearCaptures,
@@ -270,6 +366,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       rotateSticker,
       removeSticker,
       clearStickers,
+      addUserSticker,
+      removeUserSticker,
+      addUserBg,
+      removeUserBg,
       reset,
     ]
   );

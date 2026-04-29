@@ -62,6 +62,7 @@ export default function DefaultDecorate() {
   const {
     project,
     frame,
+    userLibrary,
     setFrameBg,
     setFrameBgImage,
     setFilter,
@@ -71,6 +72,10 @@ export default function DefaultDecorate() {
     rotateSticker,
     removeSticker,
     clearStickers,
+    addUserSticker,
+    removeUserSticker,
+    addUserBg,
+    removeUserBg,
   } = useProject();
   const navigate = useNavigate();
   const previewBox = usePreviewBox();
@@ -89,21 +94,58 @@ export default function DefaultDecorate() {
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bgFileInputRef = useRef<HTMLInputElement>(null);
+  const [stickerProcessing, setStickerProcessing] = useState(false);
 
   const handleUploadClick = () => {
+    if (stickerProcessing) return;
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBgUploadClick = () => {
+    bgFileInputRef.current?.click();
+  };
+
+  const blobToDataUrl = (blob: Blob): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = ''; // 같은 파일 재선택 가능하게
+    if (!file) return;
+    setStickerProcessing(true);
+    try {
+      let blob: Blob = file;
+      try {
+        const { removeBackground } = await import('@imgly/background-removal');
+        blob = await removeBackground(file);
+      } catch (err) {
+        console.error('스티커 배경 제거 실패, 원본 사용:', err);
+        blob = file;
+      }
+      const dataUrl = await blobToDataUrl(blob);
+      addUserSticker(dataUrl);
+      handleAddSticker(dataUrl);
+    } finally {
+      setStickerProcessing(false);
+    }
+  };
+
+  const handleBgFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result;
       if (typeof result === 'string') {
-        // 업로드한 이미지의 data URL을 stickerId로 사용 → getSticker가 동적으로 풀이
-        handleAddSticker(result);
+        addUserBg(result);
+        setFrameBgImage(result);
       }
     };
     reader.readAsDataURL(file);
@@ -184,35 +226,85 @@ export default function DefaultDecorate() {
     </div>
   );
 
-  const renderBgSection = () => (
-    <div className={styles.section}>
-      <span className={styles.sectionLabel}>프레임 배경</span>
-      <div className={styles.bgImageRow}>
+  const renderBgSection = () => {
+    return (
+      <div className={styles.section}>
+        <span className={styles.sectionLabel}>프레임 배경</span>
         <button
           type="button"
-          className={`${styles.bgImageCard} ${styles.bgImageNone} ${project.frameBgImage === null ? styles.bgImageActive : ''}`}
-          onClick={() => setFrameBgImage(null)}
-          aria-label="배경 이미지 없음"
+          className={styles.uploadStickerBtn}
+          onClick={handleBgUploadClick}
         >
-          <span className={styles.bgImageNoneLabel}>없음</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          내 사진으로 배경 만들기
         </button>
-        {FRAME_BG_IMAGES.map((src) => {
-          const active = project.frameBgImage === src;
-          return (
-            <button
-              key={src}
-              type="button"
-              className={`${styles.bgImageCard} ${active ? styles.bgImageActive : ''}`}
-              onClick={() => setFrameBgImage(src)}
-              aria-label={`배경 이미지 ${src}`}
-            >
-              <img src={src} alt="" />
-            </button>
-          );
-        })}
+        <input
+          ref={bgFileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleBgFileChange}
+          hidden
+        />
+        <div className={styles.bgImageRow}>
+          <button
+            type="button"
+            className={`${styles.bgImageCard} ${styles.bgImageNone} ${project.frameBgImage === null ? styles.bgImageActive : ''}`}
+            onClick={() => setFrameBgImage(null)}
+            aria-label="배경 이미지 없음"
+          >
+            <span className={styles.bgImageNoneLabel}>없음</span>
+          </button>
+          {userLibrary.bgs.map((src) => {
+            const active = project.frameBgImage === src;
+            return (
+              <div
+                key={src}
+                className={`${styles.bgImageCard} ${active ? styles.bgImageActive : ''}`}
+              >
+                <button
+                  type="button"
+                  className={styles.bgImageInner}
+                  onClick={() => setFrameBgImage(src)}
+                  aria-label="내 배경"
+                >
+                  <img src={src} alt="" />
+                  <span className={styles.bgImageMineBadge}>내 사진</span>
+                </button>
+                <button
+                  type="button"
+                  className={styles.bgImageRemoveBtn}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (project.frameBgImage === src) setFrameBgImage(null);
+                    removeUserBg(src);
+                  }}
+                  aria-label="이 배경 삭제"
+                >
+                  ×
+                </button>
+              </div>
+            );
+          })}
+          {FRAME_BG_IMAGES.map((src) => {
+            const active = project.frameBgImage === src;
+            return (
+              <button
+                key={src}
+                type="button"
+                className={`${styles.bgImageCard} ${active ? styles.bgImageActive : ''}`}
+                onClick={() => setFrameBgImage(src)}
+                aria-label={`배경 이미지 ${src}`}
+              >
+                <img src={src} alt="" />
+              </button>
+            );
+          })}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderFilterSection = () => (
     <div className={styles.section}>
@@ -241,16 +333,26 @@ export default function DefaultDecorate() {
   const renderStickerSection = () => (
     <div className={styles.section}>
       <span className={styles.sectionLabel}>스티커</span>
-      <span className={styles.sectionHint}>탭하면 프레임 가운데에 추가돼요</span>
+      <span className={styles.sectionHint}>탭하면 프레임 가운데에 추가돼요 · 업로드시 배경 자동 제거</span>
       <button
         type="button"
         className={styles.uploadStickerBtn}
         onClick={handleUploadClick}
+        disabled={stickerProcessing}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-        내 사진으로 스티커 만들기
+        {stickerProcessing ? (
+          <>
+            <span className={styles.uploadSpinner} />
+            배경 제거 중…
+          </>
+        ) : (
+          <>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            내 사진으로 스티커 만들기
+          </>
+        )}
       </button>
       <input
         ref={fileInputRef}
@@ -260,6 +362,44 @@ export default function DefaultDecorate() {
         hidden
       />
       <div className={styles.stickerGroups}>
+        {userLibrary.stickers.length > 0 && (
+          <div className={styles.stickerGroup}>
+            <span className={styles.stickerGroupLabel}>
+              내 스티커{' '}
+              <span className={styles.stickerGroupCount}>{userLibrary.stickers.length}</span>
+            </span>
+            <div className={styles.stickerPalette}>
+              {userLibrary.stickers.map((url) => (
+                <div key={url} className={styles.userStickerWrap}>
+                  <button
+                    type="button"
+                    className={styles.stickerBtn}
+                    onClick={() => handleAddSticker(url)}
+                    aria-label="내 스티커"
+                  >
+                    <img
+                      src={url}
+                      alt=""
+                      className={styles.stickerBtnArt}
+                      draggable={false}
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.userStickerRemoveBtn}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeUserSticker(url);
+                    }}
+                    aria-label="이 스티커 삭제"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {CATEGORY_ORDER.map((cat) => {
           const items = STICKER_LIB.filter((s) => s.category === cat);
           if (items.length === 0) return null;

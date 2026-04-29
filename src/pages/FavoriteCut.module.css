@@ -1,0 +1,227 @@
+.page {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 800px 500px at 20% 0%, #fff0f3 0%, transparent 60%),
+    radial-gradient(ellipse 600px 400px at 100% 100%, #eef0ff 0%, transparent 60%),
+    #fafafb;
+  padding: 32px 32px 56px;
+  display: flex;
+  justify-content: center;
+}
+
+.inner {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  flex: 1;
+  text-align: center;
+}
+
+.nextBtn {
+  background: #1a1a1a;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.12s;
+}
+
+.nextBtn:hover:not(:disabled) {
+  background: #000;
+}
+
+.nextBtn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.nextBtn:disabled {
+  background: #d0d0d4;
+  cursor: not-allowed;
+}
+
+.hint {
+  margin: 0;
+  text-align: center;
+  color: #6b6b73;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.hint strong {
+  color: #1a1a1a;
+}
+
+.slots {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.slotCard {
+  background: #fff;
+  border-radius: 14px;
+  border: 2px dashed var(--line);
+  aspect-ratio: 1 / 1;
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.slotCard:hover {
+  border-color: #1a1a1a;
+  background: #fafafb;
+}
+
+.slotCard.filled {
+  border-style: solid;
+  border-color: #1a1a1a;
+  background: #ececef;
+}
+
+.slotIndex {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.slotPlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #9b9ba2;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.slotPreview {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background:
+    linear-gradient(45deg, #f0f0f3 25%, transparent 25%),
+    linear-gradient(-45deg, #f0f0f3 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #f0f0f3 75%),
+    linear-gradient(-45deg, transparent 75%, #f0f0f3 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+
+.slotProcessing {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1a1a1a;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.spinner {
+  width: 22px;
+  height: 22px;
+  border: 2.5px solid #e5e5ea;
+  border-top-color: #1a1a1a;
+  border-radius: 999px;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.removeBtn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0 2px 0;
+}
+
+.removeBtn:hover {
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.bgRemoveOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  cursor: pointer;
+}
+
+.bgRemoveOption input {
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .page {
+    padding: 16px 12px 32px;
+  }
+  .title {
+    font-size: 14px;
+  }
+  .nextBtn {
+    padding: 10px 18px;
+    font-size: 13px;
+  }
+}

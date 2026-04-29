@@ -1,0 +1,301 @@
+.page {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 800px 500px at 20% 0%, #fff0f3 0%, transparent 60%),
+    radial-gradient(ellipse 600px 400px at 100% 100%, #eef0ff 0%, transparent 60%),
+    #fafafb;
+  padding: 32px 32px 56px;
+  display: flex;
+  justify-content: center;
+}
+
+.inner {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  flex: 1;
+  text-align: center;
+}
+
+.nextBtn {
+  background: #1a1a1a;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.12s;
+}
+.nextBtn:hover { background: #000; }
+.nextBtn:active { transform: scale(0.97); }
+
+.hint {
+  margin: 0;
+  text-align: center;
+  color: #6b6b73;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.presetGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: #fff;
+  border-radius: 12px;
+  padding: 4px 14px;
+  box-shadow:
+    0 1px 2px rgba(20, 20, 30, 0.04),
+    0 4px 12px rgba(20, 20, 30, 0.04);
+}
+
+.presetRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.presetRow + .presetRow {
+  border-top: 1px solid var(--line);
+}
+
+.presetLabel {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1a1a1a;
+  letter-spacing: 0.02em;
+  width: 64px;
+}
+
+.presetButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+}
+
+.presetBtn {
+  background: #f4f4f6;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, transform 0.12s;
+}
+
+.presetBtn:hover:not(:disabled) {
+  background: #ececef;
+  border-color: #1a1a1a;
+}
+
+.presetBtnActive {
+  background: #1a1a1a;
+  border-color: #1a1a1a;
+  color: #fff;
+}
+
+.presetBtnActive:hover:not(:disabled) {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+}
+
+.presetBtn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.presetBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.frameCard {
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px;
+  display: grid;
+  grid-template-rows: repeat(4, 1fr);
+  gap: 6px;
+  /* 4-vertical: 슬롯 한 칸 1.44, 전체 0.36 — 가로/세로 모두 고려해서 화면 넘치지 않게 */
+  width: min(420px, 100%, calc(70vh * 0.36));
+  margin: 0 auto;
+  aspect-ratio: 0.36;
+  box-shadow:
+    0 1px 2px rgba(20, 20, 30, 0.04),
+    0 8px 24px rgba(20, 20, 30, 0.05);
+}
+
+.slot {
+  position: relative;
+  background: #ececef;
+  border-radius: 4px;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.slotIndex {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.slotEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #b0b0b6;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.favorite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.favoriteHit {
+  position: absolute;
+  cursor: grab;
+  touch-action: none;
+  z-index: 2;
+}
+
+.favoriteHit:active {
+  cursor: grabbing;
+}
+
+.selectionBorder {
+  position: absolute;
+  inset: -4px;
+  border: 1.5px solid #ff3b30;
+  pointer-events: none;
+}
+
+.handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #ffffff;
+  border: 1px solid #4a4a52;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  transform: translate(-50%, -50%);
+  touch-action: none;
+}
+
+.rotateLine {
+  position: absolute;
+  left: 50%;
+  top: -22px;
+  width: 1.5px;
+  height: 18px;
+  background: #ff3b30;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.rotateHandle {
+  position: absolute;
+  left: 50%;
+  top: -32px;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1.5px solid #4a4a52;
+  color: #1a1a1a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rotateHandle:active {
+  cursor: grabbing;
+}
+
+.rotateHandle svg {
+  pointer-events: none;
+}
+
+.deleteBtn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translate(60%, -60%);
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 1px solid #fff;
+  background: #ff3b30;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0 1px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+  z-index: 1;
+}
+
+.deleteBtn:hover {
+  background: #e02b22;
+}
+
+@media (max-width: 600px) {
+  .page {
+    padding: 16px 12px 32px;
+  }
+  .title { font-size: 14px; }
+  .nextBtn { padding: 10px 18px; font-size: 13px; }
+  .frameCard {
+    /* 모바일: 폰 비율 고려 — 헤더/힌트/프리셋이 차지하는 공간 빼고 60vh 기준으로 0.36 비율 유지 */
+    width: min(280px, 100%, calc(60vh * 0.36));
+  }
+}

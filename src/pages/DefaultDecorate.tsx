@@ -88,6 +88,27 @@ export default function DefaultDecorate() {
     setSheetState('closed');
   };
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // 같은 파일 재선택 가능하게
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result === 'string') {
+        // 업로드한 이미지의 data URL을 stickerId로 사용 → getSticker가 동적으로 풀이
+        handleAddSticker(result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const onHandlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -221,6 +242,23 @@ export default function DefaultDecorate() {
     <div className={styles.section}>
       <span className={styles.sectionLabel}>스티커</span>
       <span className={styles.sectionHint}>탭하면 프레임 가운데에 추가돼요</span>
+      <button
+        type="button"
+        className={styles.uploadStickerBtn}
+        onClick={handleUploadClick}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        내 사진으로 스티커 만들기
+      </button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        hidden
+      />
       <div className={styles.stickerGroups}>
         {CATEGORY_ORDER.map((cat) => {
           const items = STICKER_LIB.filter((s) => s.category === cat);

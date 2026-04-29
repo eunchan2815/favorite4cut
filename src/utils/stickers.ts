@@ -155,5 +155,9 @@ export const CATEGORY_LABELS: Record<StickerCategory, string> = {
 };
 
 export function getSticker(id: string): StickerDef | undefined {
+  // 사용자가 업로드한 커스텀 스티커 (id 자체가 data URL)
+  if (id.startsWith('data:image/')) {
+    return { id, name: '내 스티커', image: id, category: 'other' };
+  }
   return STICKER_LIB.find((s) => s.id === id);
 }

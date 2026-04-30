@@ -266,7 +266,7 @@ export default function FavoriteArrange() {
         </div>
 
         <p className={styles.hint}>
-          사진을 탭하면 핸들이 나와요 · 드래그 이동 · 모서리 크기 · 위 회전 · ✕ 삭제
+          사진을 클릭하면 핸들이 나와요 · 드래그 이동 · 모서리 크기 · 위 회전 · ✕ 삭제
         </p>
 
         <div className={styles.presetGroup}>

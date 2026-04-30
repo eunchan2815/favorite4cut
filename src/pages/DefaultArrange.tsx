@@ -157,8 +157,8 @@ export default function DefaultArrange() {
           </span>
           <span className={styles.poolHint}>
             {selectedCaptureIdx != null
-              ? '슬롯을 눌러 이 사진을 넣으세요'
-              : '사진을 누르고 → 슬롯을 누르면 거기 들어가요'}
+              ? '슬롯을 클릭해 이 사진을 넣으세요'
+              : '사진을 클릭하고 → 슬롯을 선택하세요'}
           </span>
         </div>
         {renderResetBtn()}
@@ -246,11 +246,11 @@ export default function DefaultArrange() {
             />
             <div className={styles.focusHint}>
               {allFilled ? (
-                <>모두 채웠어요. 오른쪽 아래 <strong>다음</strong>을 눌러주세요.</>
+                <>모두 채웠어요. 오른쪽 아래 <strong>다음</strong>을 클릭해주세요.</>
               ) : selectedCaptureIdx != null ? (
-                <>{selectedCaptureIdx + 1}번 사진 선택됨 → <strong>원하는 슬롯을 누르세요</strong></>
+                <>{selectedCaptureIdx + 1}번 사진 선택됨 → <strong>원하는 슬롯을 클릭하세요</strong></>
               ) : (
-                <>채울 사진을 먼저 누르고, 넣을 슬롯을 누르세요</>
+                <>채울 사진을 먼저 클릭하고, 넣을 슬롯을 클릭하세요</>
               )}
             </div>
           </div>
@@ -277,7 +277,7 @@ export default function DefaultArrange() {
           <span className={styles.mobileSelectionHintNum}>
             {selectedCaptureIdx + 1}
           </span>
-          <span>원하는 슬롯을 누르세요</span>
+          <span>원하는 슬롯을 클릭하세요</span>
           <span className={styles.mobileSelectionHintCancel}>취소 ✕</span>
         </div>
       )}

@@ -71,10 +71,98 @@
 }
 
 .errorBox {
-  font-size: 14px;
-  color: #b00020;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 48px 32px;
   text-align: center;
-  padding: 40px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow:
+    0 1px 2px rgba(20, 20, 30, 0.04),
+    0 8px 24px rgba(20, 20, 30, 0.06);
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.errorIcon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #fff0f3;
+  color: #ff3b30;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.errorTitle {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1a1a1a;
+  letter-spacing: -0.01em;
+}
+
+.errorDesc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #6b6b73;
+  word-break: keep-all;
+}
+
+.errorDesc strong {
+  color: #1a1a1a;
+}
+
+.errorActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.errorBackBtn,
+.errorRetryBtn {
+  border-radius: 999px;
+  padding: 11px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.12s, border-color 0.15s;
+}
+
+.errorBackBtn {
+  background: transparent;
+  border: 1.5px solid var(--line);
+  color: #1a1a1a;
+}
+
+.errorBackBtn:hover {
+  background: #f6f6f8;
+  border-color: #1a1a1a;
+}
+
+.errorRetryBtn {
+  background: #1a1a1a;
+  border: 1.5px solid #1a1a1a;
+  color: #fff;
+}
+
+.errorRetryBtn:hover {
+  background: #000;
+}
+
+.errorRetryBtn:active,
+.errorBackBtn:active {
+  transform: scale(0.97);
 }
 
 .skeletonCard {

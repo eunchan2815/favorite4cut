@@ -21,17 +21,34 @@ export default function DefaultSave() {
   useEffect(() => {
     let cancelled = false;
     let url: string | null = null;
-    composeFrame(project, frame, { width: 1080 })
-      .then((b) => {
+
+    // 자동 재시도 — 첫 시도 1080, 실패시 720으로 한 번 더 (메모리/타이밍 회피)
+    const ATTEMPTS: number[] = [1080, 720];
+    const run = async () => {
+      for (let i = 0; i < ATTEMPTS.length; i++) {
         if (cancelled) return;
-        url = URL.createObjectURL(b);
-        setBlob(b);
-        setPreviewUrl(url);
-      })
-      .catch((e) => {
-        if (cancelled) return;
-        setError(e instanceof Error ? e.message : String(e));
-      });
+        try {
+          const b = await composeFrame(project, frame, { width: ATTEMPTS[i] });
+          if (cancelled) return;
+          url = URL.createObjectURL(b);
+          setBlob(b);
+          setPreviewUrl(url);
+          return;
+        } catch (e) {
+          if (cancelled) return;
+          // 마지막 시도까지 실패하면 에러 표시
+          if (i === ATTEMPTS.length - 1) {
+            setError(e instanceof Error ? e.message : String(e));
+          } else {
+            // 다음 시도 전 짧게 대기 (이미지·폰트 캐시 안정화)
+            await new Promise((r) => setTimeout(r, 600));
+          }
+        }
+      }
+    };
+
+    run();
+
     return () => {
       cancelled = true;
       if (url) URL.revokeObjectURL(url);
@@ -109,7 +126,31 @@ export default function DefaultSave() {
           {previewUrl ? (
             <img src={previewUrl} alt="완성된 프레임" className={styles.image} />
           ) : error ? (
-            <div className={styles.errorBox}>이미지 만들기 실패: {error}</div>
+            <div className={styles.errorBox}>
+              <div className={styles.errorIcon} aria-hidden>↻</div>
+              <div className={styles.errorTitle}>이미지를 만들지 못했어요</div>
+              <p className={styles.errorDesc}>
+                일시적인 오류일 수 있어요.
+                <br />
+                <strong>이전</strong> 버튼을 눌러 다시 시도해주세요.
+              </p>
+              <div className={styles.errorActions}>
+                <button
+                  type="button"
+                  className={styles.errorBackBtn}
+                  onClick={() => navigate('/default/decorate')}
+                >
+                  ← 이전으로
+                </button>
+                <button
+                  type="button"
+                  className={styles.errorRetryBtn}
+                  onClick={() => window.location.reload()}
+                >
+                  다시 시도
+                </button>
+              </div>
+            </div>
           ) : (
             <div
               className={styles.skeletonCard}

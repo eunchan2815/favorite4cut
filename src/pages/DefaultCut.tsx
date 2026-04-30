@@ -32,9 +32,10 @@ function getBoxScale(): number {
   if (typeof window === 'undefined') return 1;
   const w = window.innerWidth;
   if (w >= 760) return 1;
-  if (w >= 480) return 0.7;
-  if (w >= 380) return 0.55;
-  return 0.45;
+  if (w >= 480) return 0.55;
+  if (w >= 420) return 0.45;
+  if (w >= 380) return 0.4;
+  return 0.34;
 }
 
 export default function DefaultCut() {

@@ -35,8 +35,9 @@ interface Props {
 }
 
 /**
- * 슬롯 사진을 그리는 컴포넌트 — img ref에 useEffect로 src를 강제 적용해서
- * React reconciliation에서 prev img element가 stale src로 보일 가능성 차단.
+ * 슬롯 사진을 그리는 컴포넌트 — captures가 unique URL이고 부모 button이 captureIdx
+ * 기반 key를 사용하므로 element 자체가 unmount/remount되어 stale 위험 없음.
+ * 강제 reflow 없이 단순 img.
  */
 function SlotPhoto({
   src,
@@ -45,20 +46,11 @@ function SlotPhoto({
   src: string;
   filterCss?: string;
 }) {
-  const imgRef = useRef<HTMLImageElement>(null);
-  useEffect(() => {
-    if (imgRef.current) {
-      // 이전 src 비우고 새 src 강제 set
-      imgRef.current.removeAttribute('src');
-      // forced reflow
-      void imgRef.current.offsetHeight;
-      imgRef.current.src = src;
-    }
-  }, [src]);
   return (
     <img
-      ref={imgRef}
+      src={src}
       alt=""
+      decoding="async"
       style={{
         width: '100%',
         height: '100%',

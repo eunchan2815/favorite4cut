@@ -6,16 +6,21 @@ export interface BoxSize {
 }
 
 export function getPreviewBoxForViewport(): BoxSize {
-  if (typeof window === 'undefined') return { w: 540, h: 700 };
+  if (typeof window === 'undefined') return { w: 460, h: 700 };
   const ww = window.innerWidth;
   const vh = window.innerHeight;
-  // 모바일에선 시트(닫힘 ~12vh)와 topBar 영역 빼고 78vh 정도가 안전
-  const desktopH = vh * 0.86;
-  const mobileH = vh * 0.78;
-  if (ww >= 880) return { w: 460, h: desktopH };
-  if (ww >= 600) return { w: 440, h: mobileH };
-  if (ww >= 420) return { w: Math.min(400, ww - 20), h: mobileH };
-  return { w: Math.max(300, ww - 20), h: mobileH };
+
+  // 데스크톱 / 태블릿
+  if (ww >= 880) return { w: 460, h: vh * 0.86 };
+  if (ww >= 720) return { w: 440, h: vh * 0.82 };
+
+  // 모바일 — frameCard padding(좌우 28~32px) + page padding(좌우 24~32px) 까지 고려한 보수적 padding
+  // 즉 viewport에서 약 56~72px 빼야 카드 내부에 안전하게 fit
+  const safeH = vh < 700 ? vh * 0.68 : vh * 0.72;
+  const wPad = ww >= 430 ? 72 : ww >= 380 ? 64 : ww >= 340 ? 56 : 48;
+  const w = Math.max(240, ww - wPad);
+
+  return { w, h: safeH };
 }
 
 const getBoxFromViewport = getPreviewBoxForViewport;

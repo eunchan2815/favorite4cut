@@ -4,6 +4,7 @@ import BackButton from '../components/BackButton';
 import { useCamera, captureFrame } from '../hooks/useCamera';
 import { useProject } from '../store/ProjectContext';
 import { CAPTURE_TARGET } from '../types';
+import { prefetchDecorateAssets } from '../utils/prefetchAssets';
 import styles from './DefaultCapture.module.css';
 
 const COUNTDOWN_SEC = 10;
@@ -20,6 +21,13 @@ export default function DefaultCapture() {
   useEffect(() => {
     clearStickers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 카메라 페이지 = idle 시간 (사용자가 카운트다운 기다림). 그동안 꾸미기 페이지의
+  // 스티커·배경을 백그라운드로 점진적 prefetch → 꾸미기 시트 열자마자 즉시 표시.
+  useEffect(() => {
+    const cancel = prefetchDecorateAssets();
+    return cancel;
   }, []);
 
   const taken = project.captures.length;

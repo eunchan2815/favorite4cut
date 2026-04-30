@@ -1,12 +1,23 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ColorPicker from '../components/ColorPicker';
 import FramePreview from '../components/FramePreview';
 import { usePreviewBox } from '../hooks/usePreviewBox';
 import { useProject } from '../store/ProjectContext';
 import type { PhotoFilter } from '../types';
-import { CATEGORY_LABELS, CATEGORY_ORDER, STICKER_LIB } from '../utils/stickers';
+import { CATEGORY_LABELS, CATEGORY_ORDER, STICKER_LIB, type StickerCategory, type StickerDef } from '../utils/stickers';
 import styles from './DefaultDecorate.module.css';
+
+// 카테고리별 스티커 사전 분류 — 매 렌더마다 filter() 돌지 않게
+const STICKERS_BY_CATEGORY: Record<StickerCategory, StickerDef[]> = (() => {
+  const map = {} as Record<StickerCategory, StickerDef[]>;
+  for (const cat of CATEGORY_ORDER) map[cat] = [];
+  for (const s of STICKER_LIB) {
+    if (!map[s.category]) map[s.category] = [];
+    map[s.category].push(s);
+  }
+  return map;
+})();
 
 const FRAME_COLORS = [
   '#ffffff',
@@ -82,13 +93,63 @@ export default function DefaultDecorate() {
   const [tab, setTab] = useState<Tab>('color');
   type SheetState = 'closed' | 'half' | 'expanded';
   const [sheetState, setSheetState] = useState<SheetState>('closed');
+  // 두 번째 이상 진입 시엔 점진 reveal 스킵 (sessionStorage 플래그로 추적)
+  const SESSION_VISITED_KEY = 'fc:decorate:revealed';
+  const alreadyVisitedThisSession = (() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return window.sessionStorage.getItem(SESSION_VISITED_KEY) === '1';
+    } catch {
+      return false;
+    }
+  })();
+  // 처음 진입 시 시트가 1초 후에 자동 오픈 → 그동안 카테고리 1개만 mount.
+  // 재진입 시엔 이미지가 이미 캐시되어 있으니 시트 즉시 오픈 + 모든 카테고리 즉시 mount.
+  const [hasOpenedSheet, setHasOpenedSheet] = useState(alreadyVisitedThisSession);
+  const [revealedCategories, setRevealedCategories] = useState(
+    alreadyVisitedThisSession ? CATEGORY_ORDER.length : 1
+  );
 
-  // 진입 후 1초 뒤에 시트 자동 오픈
   useEffect(() => {
+    if (sheetState !== 'closed' && !hasOpenedSheet) {
+      setHasOpenedSheet(true);
+    }
+  }, [sheetState, hasOpenedSheet]);
+
+  // 시트 열린 후 idle 시간에 카테고리를 한 개씩 추가로 mount → 첫 paint 가벼움
+  useEffect(() => {
+    if (!hasOpenedSheet) return;
+    if (revealedCategories >= CATEGORY_ORDER.length) return;
+    const id = window.setTimeout(() => {
+      setRevealedCategories((n) => n + 1);
+    }, 100);
+    return () => window.clearTimeout(id);
+  }, [hasOpenedSheet, revealedCategories]);
+
+  // 카테고리 모두 reveal 완료되면 sessionStorage에 저장 → 다음 진입 시 점진 reveal 스킵
+  useEffect(() => {
+    if (revealedCategories >= CATEGORY_ORDER.length) {
+      try {
+        window.sessionStorage.setItem(SESSION_VISITED_KEY, '1');
+      } catch {
+        // ignore
+      }
+    }
+  }, [revealedCategories]);
+
+  const visibleCategories = useMemo(
+    () => CATEGORY_ORDER.slice(0, revealedCategories),
+    [revealedCategories]
+  );
+
+  // 진입 후 시트 자동 오픈 — 첫 진입은 1초 딜레이, 재진입은 즉시 (이미지 캐시 있음)
+  useEffect(() => {
+    const delay = alreadyVisitedThisSession ? 0 : 1000;
     const id = window.setTimeout(() => {
       setSheetState((s) => (s === 'closed' ? 'half' : s));
-    }, 1000);
+    }, delay);
     return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [autoSelectStickerId, setAutoSelectStickerId] = useState<string | null>(null);
   const dragStartY = useRef<number | null>(null);
@@ -277,7 +338,7 @@ export default function DefaultDecorate() {
                   onClick={() => setFrameBgImage(src)}
                   aria-label="내 배경"
                 >
-                  <img src={src} alt="" />
+                  <img src={src} alt="" loading="lazy" decoding="async" />
                   <span className={styles.bgImageMineBadge}>내 사진</span>
                 </button>
                 <button
@@ -305,7 +366,7 @@ export default function DefaultDecorate() {
                 onClick={() => setFrameBgImage(src)}
                 aria-label={`배경 이미지 ${src}`}
               >
-                <img src={src} alt="" />
+                <img src={src} alt="" loading="lazy" decoding="async" />
               </button>
             );
           })}
@@ -341,7 +402,7 @@ export default function DefaultDecorate() {
   const renderStickerSection = () => (
     <div className={styles.section}>
       <span className={styles.sectionLabel}>스티커</span>
-      <span className={styles.sectionHint}>탭하면 프레임 가운데에 추가돼요 · 업로드시 배경 자동 제거</span>
+      <span className={styles.sectionHint}>클릭하면 프레임 가운데에 추가돼요 · 업로드시 배경 자동 제거</span>
       <button
         type="button"
         className={styles.uploadStickerBtn}
@@ -388,6 +449,8 @@ export default function DefaultDecorate() {
                     <img
                       src={url}
                       alt=""
+                      loading="lazy"
+                      decoding="async"
                       className={styles.stickerBtnArt}
                       draggable={false}
                     />
@@ -408,8 +471,8 @@ export default function DefaultDecorate() {
             </div>
           </div>
         )}
-        {CATEGORY_ORDER.map((cat) => {
-          const items = STICKER_LIB.filter((s) => s.category === cat);
+        {visibleCategories.map((cat) => {
+          const items = STICKERS_BY_CATEGORY[cat] || [];
           if (items.length === 0) return null;
           return (
             <div key={cat} className={styles.stickerGroup}>
@@ -430,6 +493,8 @@ export default function DefaultDecorate() {
                     <img
                       src={s.image}
                       alt=""
+                      loading="lazy"
+                      decoding="async"
                       className={styles.stickerBtnArt}
                       draggable={false}
                     />
@@ -451,18 +516,33 @@ export default function DefaultDecorate() {
     </div>
   );
 
-  const renderTabContent = () => {
-    switch (tab) {
-      case 'color':
-        return renderColorSection();
-      case 'bg':
-        return renderBgSection();
-      case 'filter':
-        return renderFilterSection();
-      case 'sticker':
-        return renderStickerSection();
-    }
-  };
+  // 한 번 visit한 탭은 mount 유지 — 다시 와도 이미지 그대로 보임 (재 fetch / 재 layout 없음)
+  const [visitedTabs, setVisitedTabs] = useState<Set<Tab>>(new Set(['color']));
+  useEffect(() => {
+    setVisitedTabs((prev) => {
+      if (prev.has(tab)) return prev;
+      const next = new Set(prev);
+      next.add(tab);
+      return next;
+    });
+  }, [tab]);
+
+  const renderTabContent = () => (
+    <>
+      <div style={{ display: tab === 'color' ? 'block' : 'none' }}>
+        {visitedTabs.has('color') && renderColorSection()}
+      </div>
+      <div style={{ display: tab === 'bg' ? 'block' : 'none' }}>
+        {visitedTabs.has('bg') && renderBgSection()}
+      </div>
+      <div style={{ display: tab === 'filter' ? 'block' : 'none' }}>
+        {visitedTabs.has('filter') && renderFilterSection()}
+      </div>
+      <div style={{ display: tab === 'sticker' ? 'block' : 'none' }}>
+        {visitedTabs.has('sticker') && renderStickerSection()}
+      </div>
+    </>
+  );
 
   return (
     <div className={styles.page}>
@@ -500,7 +580,7 @@ export default function DefaultDecorate() {
               autoSelectStickerId={autoSelectStickerId}
             />
             <span className={styles.previewHint}>
-              스티커 탭 → 드래그 이동 · 모서리 크기 · 위 핸들 회전 · ✕ 삭제
+              스티커 클릭 → 드래그 이동 · 모서리 크기 · 위 핸들 회전 · ✕ 삭제
             </span>
           </div>
 
@@ -568,7 +648,8 @@ export default function DefaultDecorate() {
           onTouchMove={onContentTouchMove}
           onTouchEnd={onContentTouchEnd}
         >
-          {renderTabContent()}
+          {/* 시트가 처음 열리기 전까진 무거운 이미지 콘텐츠 mount 안 함 */}
+          {hasOpenedSheet && renderTabContent()}
         </div>
       </div>
     </div>

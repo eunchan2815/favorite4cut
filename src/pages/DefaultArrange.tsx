@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BackButton from '../components/BackButton';
 import FramePreview from '../components/FramePreview';
@@ -13,6 +13,14 @@ export default function DefaultArrange() {
 
   type SheetState = 'closed' | 'half' | 'expanded';
   const [sheetState, setSheetState] = useState<SheetState>('closed');
+
+  // 진입 후 1초 뒤에 시트 자동 오픈 (사용자 시선 자연스럽게 유도)
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      setSheetState((s) => (s === 'closed' ? 'half' : s));
+    }, 1000);
+    return () => window.clearTimeout(id);
+  }, []);
   // 인덱스로 추적 — 중복 URL이 있어도 정확히 매칭
   const [selectedCaptureIdx, setSelectedCaptureIdx] = useState<number | null>(null);
   const dragStartY = useRef<number | null>(null);

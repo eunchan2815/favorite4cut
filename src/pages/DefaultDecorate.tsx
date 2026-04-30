@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ColorPicker from '../components/ColorPicker';
 import FramePreview from '../components/FramePreview';
@@ -82,6 +82,14 @@ export default function DefaultDecorate() {
   const [tab, setTab] = useState<Tab>('color');
   type SheetState = 'closed' | 'half' | 'expanded';
   const [sheetState, setSheetState] = useState<SheetState>('closed');
+
+  // 진입 후 1초 뒤에 시트 자동 오픈
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      setSheetState((s) => (s === 'closed' ? 'half' : s));
+    }, 1000);
+    return () => window.clearTimeout(id);
+  }, []);
   const [autoSelectStickerId, setAutoSelectStickerId] = useState<string | null>(null);
   const dragStartY = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);

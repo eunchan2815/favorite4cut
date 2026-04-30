@@ -25,6 +25,8 @@ interface Props {
   focusedSlot?: number | null;
   /** captureIdx → captures URL lookup. 있으면 slot.photo보다 우선해서 정확한 src를 보장. */
   captures?: string[];
+  /** 슬롯 X 버튼 클릭 시 — slot.photo 있는 슬롯에만 표시 */
+  onSlotRemove?: (index: number) => void;
   onSlotClick?: (index: number) => void;
   onStickerMove?: (id: string, x: number, y: number) => void;
   onStickerScale?: (id: string, scale: number) => void;
@@ -141,6 +143,7 @@ export default function FramePreview({
   stickers,
   focusedSlot,
   captures,
+  onSlotRemove,
   onSlotClick,
   onStickerMove,
   onStickerScale,
@@ -358,17 +361,35 @@ export default function FramePreview({
           );
           // captureIdx가 바뀌면 button 자체를 새 element로 mount → 이전 그림 element 재사용 가능성 0
           const slotKey = `slot-${slot.index}-${slot.captureIdx ?? 'empty'}`;
-          return interactive ? (
-            <button
-              key={slotKey}
-              type="button"
-              className={slotCls}
-              onClick={() => onSlotClick!(slot.index)}
-              style={{ cursor: 'pointer' }}
-            >
-              {content}
-            </button>
-          ) : (
+          const showRemoveBtn = interactive && Boolean(slot.photo) && Boolean(onSlotRemove);
+          if (interactive) {
+            return (
+              <div
+                key={slotKey}
+                className={`${slotCls} ${styles.slotWrapper}`}
+                onClick={() => onSlotClick!(slot.index)}
+                style={{ cursor: 'pointer', position: 'relative' }}
+                role="button"
+                tabIndex={0}
+              >
+                {content}
+                {showRemoveBtn && (
+                  <button
+                    type="button"
+                    className={styles.slotRemoveBtn}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSlotRemove!(slot.index);
+                    }}
+                    aria-label="이 슬롯 비우기"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            );
+          }
+          return (
             <div key={slotKey} className={slotCls}>
               {content}
             </div>

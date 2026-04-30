@@ -24,10 +24,15 @@ export async function composeFrame(
   frame: FrameDef,
   opts: ComposeOptions = {}
 ): Promise<Blob> {
-  const targetW = opts.width ?? 1080;
+  const isMobile =
+    typeof window !== 'undefined' && window.innerWidth < 600;
+  // 모바일은 default도 작게 — single-core CPU에서 큰 캔버스 + html-to-image 변환은 매우 느림
+  const targetW = opts.width ?? (isMobile ? 720 : 1080);
   const { w: boxW, h: boxH } = getPreviewBoxForViewport();
   const previewW = renderedWidth(frame, boxW, boxH);
-  const pixelRatio = targetW / previewW;
+  // pixelRatio cap — 모바일은 2 이하로 강제. 모바일 viewport가 작아 비율이 5+로 치솟던 거 차단
+  const rawRatio = targetW / previewW;
+  const pixelRatio = Math.min(rawRatio, isMobile ? 2 : 3);
 
   const container = document.createElement('div');
   container.style.position = 'fixed';
@@ -67,7 +72,7 @@ export async function composeFrame(
       }
     }
 
-    // Wait for all <img> to finish loading
+    // Wait for all <img> to load — decode wait는 모바일에서 메인 쓰레드 점유라 제거
     const imgs = Array.from(container.querySelectorAll('img'));
     await Promise.all(
       imgs.map((img) => {

@@ -14,15 +14,44 @@ export default function DefaultArrange() {
   type SheetState = 'closed' | 'half' | 'expanded';
   const [sheetState, setSheetState] = useState<SheetState>('closed');
 
-  // 진입 후 1초 뒤에 시트 자동 오픈 (사용자 시선 자연스럽게 유도)
+  // 시트가 닫혀 있을 때 페이지 어디서든 위로 스크롤/드래그 → 시트 자동 오픈
   useEffect(() => {
-    const id = window.setTimeout(() => {
-      setSheetState((s) => (s === 'closed' ? 'half' : s));
-    }, 1000);
-    return () => window.clearTimeout(id);
-  }, []);
-  // 인덱스로 추적 — 중복 URL이 있어도 정확히 매칭
-  const [selectedCaptureIdx, setSelectedCaptureIdx] = useState<number | null>(null);
+    if (sheetState !== 'closed') return;
+
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY < -10) setSheetState('half');
+    };
+    let ts: number | null = null;
+    const onTouchStart = (e: TouchEvent) => {
+      ts = e.touches[0]?.clientY ?? null;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (ts == null) return;
+      const dy = (e.touches[0]?.clientY ?? 0) - ts;
+      if (dy < -30) {
+        setSheetState('half');
+        ts = null;
+      } else if (Math.abs(dy) > 60) {
+        ts = null;
+      }
+    };
+    const onTouchEnd = () => {
+      ts = null;
+    };
+
+    window.addEventListener('wheel', onWheel, { passive: true });
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [sheetState]);
+  // 슬롯-first UX: 사용자가 직접 선택한 슬롯 → 사진 클릭 시 그 슬롯에 즉시 들어감
+  const [focusedSlotIdx, setFocusedSlotIdx] = useState<number | null>(null);
   const dragStartY = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
   const touchStartState = useRef<SheetState | null>(null);
@@ -31,6 +60,10 @@ export default function DefaultArrange() {
   const filledCount = project.slots.filter((s) => s.photo).length;
   const allFilled = filledCount >= frame.count;
 
+  // 실제로 사진이 들어갈 타겟 슬롯 — 사용자가 직접 고른 게 우선, 아니면 첫 빈 슬롯
+  const targetSlotIdx =
+    focusedSlotIdx != null && focusedSlotIdx >= 0 ? focusedSlotIdx : firstEmpty;
+
   // 어느 capture 인덱스가 어느 슬롯에 들어갔는지 (중복 URL 무관, idx 기준)
   const usedCaptureIndices = new Set<number>(
     project.slots
@@ -38,18 +71,23 @@ export default function DefaultArrange() {
       .filter((v): v is number => typeof v === 'number')
   );
 
+  // 사진 클릭 = focused 슬롯(또는 첫 빈)에 즉시 배치 + 시트 닫기
   const handleCaptureClick = (idx: number) => {
     if (idx < 0 || idx >= project.captures.length) return;
     if (usedCaptureIndices.has(idx)) return;
-    setSelectedCaptureIdx((prev) => {
-      if (prev === idx) return null; // 같은 사진 다시 누르면 해제 (시트 그대로)
-      // 새 사진 선택 → 모바일이면 시트 닫고 슬롯 보이게
-      setSheetState('closed');
-      return idx;
-    });
+    if (targetSlotIdx < 0) return;
+    const url = project.captures[idx];
+    if (!url) return;
+    setSlotPhoto(targetSlotIdx, url, idx);
+    // 다음 빈 슬롯으로 자동 focus 이동 (있으면)
+    const nextEmpty = project.slots.findIndex(
+      (s, i) => !s.photo && i !== targetSlotIdx
+    );
+    setFocusedSlotIdx(nextEmpty >= 0 ? nextEmpty : null);
+    // 사진 선택 후엔 시트 닫아서 결과 보이게
+    setSheetState('closed');
   };
 
-  // 클로저 캡처 의심 완전 차단 — data-idx로 명시적 인덱스 전달
   const handleCaptureButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     const idxStr = e.currentTarget.dataset.idx;
     if (idxStr == null) return;
@@ -58,28 +96,17 @@ export default function DefaultArrange() {
     handleCaptureClick(idx);
   };
 
+  // 슬롯 클릭:
+  //  - 빈 슬롯 → focus + 시트 열어서 사진 고르게
+  //  - 차있는 슬롯 → 비우기 + 그 슬롯 focus (다시 채우거나 그대로 두거나)
   const handleSlotClick = (slotIndex: number) => {
-    if (selectedCaptureIdx != null) {
-      const url = project.captures[selectedCaptureIdx];
-      if (url) {
-        setSlotPhoto(slotIndex, url, selectedCaptureIdx);
-        setSelectedCaptureIdx(null);
-        // 이번 배치로 채워질 개수 — 빈 슬롯 채우면 +1, 차있는 슬롯 덮어쓰면 그대로
-        const wasEmpty = !project.slots[slotIndex]?.photo;
-        const nextFilled = filledCount + (wasEmpty ? 1 : 0);
-        if (nextFilled >= frame.count) {
-          // 다 채웠으면 시트 닫기
-          setSheetState('closed');
-        } else {
-          // 아직 남았으면 시트 다시 열어서 다음 사진 고르게
-          setSheetState('half');
-        }
-      }
-      return;
-    }
     const slot = project.slots[slotIndex];
-    if (slot.photo) {
+    if (slot?.photo) {
       setSlotPhoto(slotIndex, null);
+      setFocusedSlotIdx(slotIndex);
+    } else {
+      setFocusedSlotIdx(slotIndex);
+      setSheetState('half');
     }
   };
 
@@ -87,7 +114,7 @@ export default function DefaultArrange() {
     project.slots.forEach((s) => {
       if (s.photo) setSlotPhoto(s.index, null);
     });
-    setSelectedCaptureIdx(null);
+    setFocusedSlotIdx(null);
   };
 
   // Sheet drag handlers
@@ -163,9 +190,9 @@ export default function DefaultArrange() {
             찍은 사진 {project.captures.length}장
           </span>
           <span className={styles.poolHint}>
-            {selectedCaptureIdx != null
-              ? '슬롯을 클릭해 이 사진을 넣으세요'
-              : '사진을 클릭하고 → 슬롯을 선택하세요'}
+            {targetSlotIdx >= 0
+              ? `${targetSlotIdx + 1}번 슬롯에 들어갈 사진을 클릭하세요`
+              : '슬롯이 모두 채워졌어요'}
           </span>
         </div>
         {renderResetBtn()}
@@ -173,22 +200,20 @@ export default function DefaultArrange() {
       <div className={styles.captureGrid}>
         {project.captures.map((src, i) => {
           const used = usedCaptureIndices.has(i);
-          const isSelected = selectedCaptureIdx === i;
           // captures 자체에 favorite이 합성되어 있으므로 별도 overlay 없음
           return (
             <button
               key={`${i}-${src.slice(-12)}`}
               type="button"
               data-idx={i}
-              className={`${styles.captureItem} ${used ? styles.used : ''} ${isSelected ? styles.captureItemSelected : ''}`}
+              className={`${styles.captureItem} ${used ? styles.used : ''}`}
               onClick={handleCaptureButtonClick}
-              disabled={used}
-              aria-label={used ? '이미 사용 중' : `사진 ${i + 1} 선택`}
+              disabled={used || targetSlotIdx < 0}
+              aria-label={used ? '이미 사용 중' : `사진 ${i + 1}을 ${targetSlotIdx + 1}번 슬롯에 넣기`}
             >
               <span className={styles.captureNumBadge}>{i + 1}</span>
               <img src={src} alt={`captured ${i + 1}`} />
               {used && <span className={styles.usedBadge}>사용중</span>}
-              {isSelected && <span className={styles.selectedBadge}>선택됨</span>}
             </button>
           );
         })}
@@ -242,22 +267,16 @@ export default function DefaultArrange() {
               caption={project.caption}
               boxWidth={previewBox.w}
               boxHeight={previewBox.h}
-              focusedSlot={
-                selectedCaptureIdx != null
-                  ? null
-                  : firstEmpty >= 0
-                  ? firstEmpty
-                  : null
-              }
+              focusedSlot={targetSlotIdx >= 0 ? targetSlotIdx : null}
               onSlotClick={handleSlotClick}
             />
             <div className={styles.focusHint}>
               {allFilled ? (
                 <>모두 채웠어요. 오른쪽 아래 <strong>다음</strong>을 클릭해주세요.</>
-              ) : selectedCaptureIdx != null ? (
-                <>{selectedCaptureIdx + 1}번 사진 선택됨 → <strong>원하는 슬롯을 클릭하세요</strong></>
+              ) : targetSlotIdx >= 0 ? (
+                <>지금 채울 칸 → <strong>{targetSlotIdx + 1}번 슬롯</strong></>
               ) : (
-                <>채울 사진을 먼저 클릭하고, 넣을 슬롯을 클릭하세요</>
+                <>슬롯을 클릭해 채울 칸을 고르세요</>
               )}
             </div>
           </div>
@@ -276,16 +295,15 @@ export default function DefaultArrange() {
       )}
 
       {/* Mobile floating hint — 사진 선택 후 슬롯 누르라고 안내 (시트 위쪽에 떠있음) */}
-      {selectedCaptureIdx != null && sheetState === 'closed' && (
+      {targetSlotIdx >= 0 && sheetState === 'closed' && !allFilled && (
         <div
           className={styles.mobileSelectionHint}
-          onClick={() => setSelectedCaptureIdx(null)}
+          onClick={() => setSheetState('half')}
         >
           <span className={styles.mobileSelectionHintNum}>
-            {selectedCaptureIdx + 1}
+            {targetSlotIdx + 1}
           </span>
-          <span>원하는 슬롯을 클릭하세요</span>
-          <span className={styles.mobileSelectionHintCancel}>취소 ✕</span>
+          <span>이 슬롯에 넣을 사진 고르기</span>
         </div>
       )}
 
@@ -308,6 +326,11 @@ export default function DefaultArrange() {
         </div>
         <div
           className={styles.sheetContent}
+          style={
+            sheetState === 'closed'
+              ? { overflow: 'hidden', touchAction: 'none', pointerEvents: 'none' }
+              : undefined
+          }
           onScroll={onContentScroll}
           onWheel={onContentWheel}
           onTouchStart={onContentTouchStart}

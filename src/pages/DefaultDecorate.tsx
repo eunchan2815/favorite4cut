@@ -156,11 +156,22 @@ export default function DefaultDecorate() {
   const touchStartY = useRef<number | null>(null);
   const touchStartState = useRef<SheetState | null>(null);
 
-  // 스티커 추가 — 새 id로 자동 선택 + 시트 닫기
+  // 스티커 추가 — 새 id로 자동 선택 + 시트 닫기 + 이미지 디코드 prefetch
   const handleAddSticker = (stickerLibId: string) => {
     const newId = addSticker(stickerLibId);
     setAutoSelectStickerId(newId);
     setSheetState('closed');
+    // 추가된 sticker 이미지를 미리 디코드해서 캐시에 올려둠 →
+    // 저장 페이지에서 composeFrame 호출 시 즉시 사용 가능
+    const url = stickerLibId.startsWith('data:')
+      ? stickerLibId
+      : STICKER_LIB.find((s) => s.id === stickerLibId)?.image;
+    if (url) {
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = url;
+      img.decode?.().catch(() => {});
+    }
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -649,6 +660,11 @@ export default function DefaultDecorate() {
         </div>
         <div
           className={styles.sheetContent}
+          style={
+            sheetState === 'closed'
+              ? { overflow: 'hidden', touchAction: 'none', pointerEvents: 'none' }
+              : undefined
+          }
           onScroll={onContentScroll}
           onWheel={onContentWheel}
           onTouchStart={onContentTouchStart}

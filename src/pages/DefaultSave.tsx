@@ -18,13 +18,24 @@ export default function DefaultSave() {
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<number | null>(null);
 
+  // project 또는 frame이 바뀌면 재시도 — 첫 mount 시 stale project closure 방지
+  // (스티커 추가 직후 navigate, "다음" 직후 mount 시점 project가 fresh 아닐 수 있음)
+  // 한 번 성공해서 blob이 생기면 더 이상 재호출 안 함.
   useEffect(() => {
+    if (blob) return;
     let cancelled = false;
     let url: string | null = null;
+    let retryTimerId: number | null = null;
 
-    // 자동 재시도 — 첫 시도 1080, 실패시 720으로 한 번 더 (메모리/타이밍 회피)
-    const ATTEMPTS: number[] = [1080, 720];
+    const isMobile =
+      typeof window !== 'undefined' && window.innerWidth < 600;
+    // 모바일은 처음부터 작게 시작 (CPU 부담 / 메모리 한계 회피)
+    const ATTEMPTS: number[] = isMobile ? [720, 540] : [1080, 720];
     const run = async () => {
+      // 첫 시도 전 한 프레임 양보 — 라우트 전환 직후 image/font 디코딩이 아직 안 끝났을 가능성
+      await new Promise((r) => requestAnimationFrame(() => r(undefined)));
+      if (cancelled) return;
+
       for (let i = 0; i < ATTEMPTS.length; i++) {
         if (cancelled) return;
         try {
@@ -33,15 +44,16 @@ export default function DefaultSave() {
           url = URL.createObjectURL(b);
           setBlob(b);
           setPreviewUrl(url);
+          setError(null);
           return;
         } catch (e) {
           if (cancelled) return;
-          // 마지막 시도까지 실패하면 에러 표시
           if (i === ATTEMPTS.length - 1) {
             setError(e instanceof Error ? e.message : String(e));
           } else {
-            // 다음 시도 전 짧게 대기 (이미지·폰트 캐시 안정화)
-            await new Promise((r) => setTimeout(r, 600));
+            await new Promise((r) => {
+              retryTimerId = window.setTimeout(() => r(undefined), 600);
+            });
           }
         }
       }
@@ -52,10 +64,10 @@ export default function DefaultSave() {
     return () => {
       cancelled = true;
       if (url) URL.revokeObjectURL(url);
+      if (retryTimerId != null) window.clearTimeout(retryTimerId);
       if (toastTimer.current != null) window.clearTimeout(toastTimer.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [project, frame, blob]);
 
   const showToast = (msg: string) => {
     setToast(msg);

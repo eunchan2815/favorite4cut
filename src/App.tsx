@@ -7,6 +7,7 @@ import DefaultDecorate from './pages/DefaultDecorate';
 import DefaultSave from './pages/DefaultSave';
 import FavoriteCut from './pages/FavoriteCut';
 import FavoriteArrange from './pages/FavoriteArrange';
+import NotFound from './pages/NotFound';
 
 export default function App() {
   return (
@@ -19,7 +20,7 @@ export default function App() {
       <Route path="/default/save" element={<DefaultSave />} />
       <Route path="/favorite" element={<FavoriteCut />} />
       <Route path="/favorite/arrange" element={<FavoriteArrange />} />
-      <Route path="*" element={<Home />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

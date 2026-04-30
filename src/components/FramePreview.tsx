@@ -25,8 +25,6 @@ interface Props {
   focusedSlot?: number | null;
   /** captureIdx → captures URL lookup. 있으면 slot.photo보다 우선해서 정확한 src를 보장. */
   captures?: string[];
-  /** 최애 오버레이를 가리고 슬롯의 captures 사진만 보이게 (사진 선택 단계 등) */
-  hideFavoriteOverlay?: boolean;
   onSlotClick?: (index: number) => void;
   onStickerMove?: (id: string, x: number, y: number) => void;
   onStickerScale?: (id: string, scale: number) => void;
@@ -151,7 +149,6 @@ export default function FramePreview({
   stickers,
   focusedSlot,
   captures,
-  hideFavoriteOverlay,
   onSlotClick,
   onStickerMove,
   onStickerScale,

@@ -1,75 +1,28 @@
-# React + TypeScript + Vite
+# 최애네컷 (Favorite4Cut)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+최애 사진과 함께 찍는 웹 포토부스.
+카메라에 최애를 오버레이한 채로 셀카를 찍고, 네컷 프레임으로 꾸며 인스타에 공유하세요.
 
-Currently, two official plugins are available:
+**Live** → [favorite4cut.vercel.app](https://favorite4cut.vercel.app/)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## 기능
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+### 기본 네컷
+- 9가지 프레임 레이아웃 (2·3·4·6컷)
+- 10초 카운트다운 카메라
+- 색상 / 배경 / 필터 / 스티커 커스터마이즈
+- 다운로드 및 Instagram Stories 공유
 
-Note: This will impact Vite dev & build performances.
+### 최애 네컷
+- 사진 업로드 시 AI 배경 자동 제거 (클라이언트 사이드)
+- Figma 스타일 오버레이 (이동·회전·크기·정렬)
+- 카메라에 최애를 비춘 채로 셀카 촬영
+- 캡처 후 캔버스에 합성
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### 꾸미기
+- 100+ 스티커 (캐릭터·아이돌·연예인 등)
+- 19종 배경 + 사용자 업로드 지원
+- 6종 필터 (흑백·세피아·비비드·웜·쿨)
+- 업로드 스티커·배경은 localStorage에 저장

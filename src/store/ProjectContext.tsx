@@ -36,7 +36,7 @@ interface ProjectContextValue {
   setMode: (mode: Mode) => void;
   setLayout: (layoutId: FrameLayoutId) => void;
   setCaption: (caption: string) => void;
-  setSlotPhoto: (index: number, dataUrl: string | null) => void;
+  setSlotPhoto: (index: number, dataUrl: string | null, captureIdx?: number | null) => void;
   setSlotFavorite: (index: number, favorite: FavoriteOverlay | null) => void;
   addCapture: (dataUrl: string) => void;
   removeCapture: (index: number) => void;
@@ -181,14 +181,19 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     setProject((p) => ({ ...p, caption }));
   }, []);
 
-  const setSlotPhoto = useCallback((index: number, dataUrl: string | null) => {
-    setProject((p) => ({
-      ...p,
-      slots: p.slots.map((s) =>
-        s.index === index ? { ...s, photo: dataUrl } : s
-      ),
-    }));
-  }, []);
+  const setSlotPhoto = useCallback(
+    (index: number, dataUrl: string | null, captureIdx: number | null = null) => {
+      setProject((p) => ({
+        ...p,
+        slots: p.slots.map((s) =>
+          s.index === index
+            ? { ...s, photo: dataUrl, captureIdx: dataUrl ? captureIdx : null }
+            : s
+        ),
+      }));
+    },
+    []
+  );
 
   const setSlotFavorite = useCallback(
     (index: number, favorite: FavoriteOverlay | null) => {
@@ -205,7 +210,11 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   );
 
   const addCapture = useCallback((dataUrl: string) => {
-    setProject((p) => ({ ...p, captures: [...p.captures, dataUrl] }));
+    // 같은 카메라 프레임을 두 번 찍으면 dataURL이 동일할 수 있음.
+    // 그러면 React key 충돌 + URL 기반 매칭이 어긋남.
+    // hash(#)는 img/canvas 렌더에서 무시되므로 시각엔 영향 없고, 식별만 unique 보장.
+    const unique = `${dataUrl}#cap-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    setProject((p) => ({ ...p, captures: [...p.captures, unique] }));
   }, []);
 
   const removeCapture = useCallback((index: number) => {

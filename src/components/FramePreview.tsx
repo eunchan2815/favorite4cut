@@ -23,6 +23,10 @@ interface Props {
   filter?: PhotoFilter;
   stickers?: PlacedSticker[];
   focusedSlot?: number | null;
+  /** captureIdx → captures URL lookup. 있으면 slot.photo보다 우선해서 정확한 src를 보장. */
+  captures?: string[];
+  /** 최애 오버레이를 가리고 슬롯의 captures 사진만 보이게 (사진 선택 단계 등) */
+  hideFavoriteOverlay?: boolean;
   onSlotClick?: (index: number) => void;
   onStickerMove?: (id: string, x: number, y: number) => void;
   onStickerScale?: (id: string, scale: number) => void;
@@ -30,6 +34,42 @@ interface Props {
   onStickerRemove?: (id: string) => void;
   /** When this id changes to a non-null value, that sticker becomes selected. */
   autoSelectStickerId?: string | null;
+}
+
+/**
+ * 슬롯 사진을 그리는 컴포넌트 — img ref에 useEffect로 src를 강제 적용해서
+ * React reconciliation에서 prev img element가 stale src로 보일 가능성 차단.
+ */
+function SlotPhoto({
+  src,
+  filterCss,
+}: {
+  src: string;
+  filterCss?: string;
+}) {
+  const imgRef = useRef<HTMLImageElement>(null);
+  useEffect(() => {
+    if (imgRef.current) {
+      // 이전 src 비우고 새 src 강제 set
+      imgRef.current.removeAttribute('src');
+      // forced reflow
+      void imgRef.current.offsetHeight;
+      imgRef.current.src = src;
+    }
+  }, [src]);
+  return (
+    <img
+      ref={imgRef}
+      alt=""
+      style={{
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+        display: 'block',
+        ...(filterCss ? { filter: filterCss } : {}),
+      }}
+    />
+  );
 }
 
 const FILTER_CSS: Record<PhotoFilter, string> = {
@@ -110,6 +150,8 @@ export default function FramePreview({
   filter = 'none',
   stickers,
   focusedSlot,
+  captures,
+  hideFavoriteOverlay,
   onSlotClick,
   onStickerMove,
   onStickerScale,
@@ -298,22 +340,21 @@ export default function FramePreview({
           const slotCls = `${slotClsBase} ${isFocused ? styles.slotFocused : ''}`;
           const photoStyle =
             filter !== 'none' ? { filter: FILTER_CSS[filter] } : undefined;
-          const photo = slot.photo ? (
-            <img src={slot.photo} alt="" className={styles.photo} style={photoStyle} />
-          ) : null;
-          // favorite는 슬롯에 셀카가 들어왔을 때만 함께 표시 (배치 단계에선 빈 슬롯)
-          const favoriteOverlay = slot.favorite && slot.photo ? (
-            <img
-              src={slot.favorite.src}
-              alt=""
-              className={styles.favoriteOverlay}
-              style={{
-                opacity: slot.favorite.opacity,
-                transform: `translate(-50%, -50%) translate(${(slot.favorite.x - 0.5) * 100}%, ${(slot.favorite.y - 0.5) * 100}%) scale(${slot.favorite.scale})${slot.favorite.flipped ? ' scaleX(-1)' : ''} rotate(${slot.favorite.rotation}deg)`,
-              }}
-              draggable={false}
+          // captureIdx가 있으면 captures에서 직접 lookup → slot.photo URL과 다르더라도 정확한 그림 강제
+          const resolvedSrc =
+            captures && slot.captureIdx != null && captures[slot.captureIdx]
+              ? captures[slot.captureIdx]
+              : slot.photo;
+          const photo = resolvedSrc ? (
+            <SlotPhoto
+              key={`photo-${slot.index}-${slot.captureIdx ?? 'x'}`}
+              src={resolvedSrc}
+              filterCss={photoStyle?.filter as string | undefined}
             />
           ) : null;
+          const debugBadge = null;
+          // captures 자체에 favorite이 합성되어 들어오므로 어느 단계에서도 추가 overlay 안 그림.
+          const favoriteOverlay = null;
           const placeholder =
             !photo && !favoriteOverlay && !compact ? (
               <span className={styles.placeholderNum}>{slot.index + 1}</span>
@@ -323,11 +364,14 @@ export default function FramePreview({
               {photo}
               {favoriteOverlay}
               {placeholder}
+              {debugBadge}
             </>
           );
+          // captureIdx가 바뀌면 button 자체를 새 element로 mount → 이전 그림 element 재사용 가능성 0
+          const slotKey = `slot-${slot.index}-${slot.captureIdx ?? 'empty'}`;
           return interactive ? (
             <button
-              key={slot.index}
+              key={slotKey}
               type="button"
               className={slotCls}
               onClick={() => onSlotClick!(slot.index)}
@@ -336,7 +380,7 @@ export default function FramePreview({
               {content}
             </button>
           ) : (
-            <div key={slot.index} className={slotCls}>
+            <div key={slotKey} className={slotCls}>
               {content}
             </div>
           );

@@ -31,6 +31,12 @@ export default function DefaultCapture() {
   const addCaptureRef = useRef(addCapture);
   addCaptureRef.current = addCapture;
 
+  // 현재 슬롯의 favorite (favorite 모드에서 카메라에 비치는 것 → 캡처에도 합성)
+  const currentSlotFavorite =
+    project.mode === 'favorite'
+      ? project.slots[taken % project.slots.length]?.favorite
+      : null;
+
   useEffect(() => {
     if (!ready || allDone || error) return;
     const start = performance.now();
@@ -44,11 +50,18 @@ export default function DefaultCapture() {
       if (ms >= COUNTDOWN_SEC * 1000) {
         if (!fired && videoRef.current) {
           fired = true;
-          const url = captureFrame(videoRef.current, true);
-          if (url) {
-            addCaptureRef.current(url);
-            setFlashKey((k) => k + 1);
-          }
+          captureFrame(videoRef.current, {
+            mirrored: true,
+            slotAspect,
+            favorite: currentSlotFavorite ?? null,
+          })
+            .then((url) => {
+              if (url) {
+                addCaptureRef.current(url);
+                setFlashKey((k) => k + 1);
+              }
+            })
+            .catch(() => {});
         }
         return;
       }
@@ -57,15 +70,19 @@ export default function DefaultCapture() {
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [ready, allDone, error, taken, videoRef]);
+  }, [ready, allDone, error, taken, videoRef, slotAspect, currentSlotFavorite]);
 
   const secondsLeft = allDone
     ? 0
     : Math.max(1, Math.ceil(COUNTDOWN_SEC - elapsedMs / 1000));
 
-  const handleShoot = () => {
+  const handleShoot = async () => {
     if (!videoRef.current || !ready || allDone) return;
-    const url = captureFrame(videoRef.current, true);
+    const url = await captureFrame(videoRef.current, {
+      mirrored: true,
+      slotAspect,
+      favorite: currentSlotFavorite ?? null,
+    });
     if (url) {
       addCapture(url);
       setFlashKey((k) => k + 1);
@@ -203,26 +220,9 @@ export default function DefaultCapture() {
                 </div>
               );
             }
-            const slotIdx = i % project.slots.length;
-            const fav =
-              project.mode === 'favorite'
-                ? project.slots[slotIdx]?.favorite
-                : undefined;
             return (
               <div key={i} className={`${styles.thumb} ${styles.filled}`}>
                 <img src={src} alt={`captured ${i + 1}`} />
-                {fav && (
-                  <img
-                    src={fav.src}
-                    alt=""
-                    className={styles.thumbFavoriteOverlay}
-                    style={{
-                      opacity: fav.opacity,
-                      transform: `translate(-50%, -50%) translate(${(fav.x - 0.5) * 100}%, ${(fav.y - 0.5) * 100}%) scale(${fav.scale}) rotate(${fav.rotation}deg)`,
-                    }}
-                    draggable={false}
-                  />
-                )}
                 <button
                   type="button"
                   className={styles.removeBtn}

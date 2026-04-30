@@ -140,13 +140,12 @@
   display: grid;
   grid-template-rows: repeat(4, 1fr);
   gap: 6px;
-  /* 4-vertical: 슬롯 한 칸 1.44, 전체 0.36 — 가로/세로 모두 고려해서 화면 넘치지 않게 */
-  width: min(420px, 100%, calc(70vh * 0.36));
+  /* width/height는 inline style로 usePreviewBox에서 계산해서 들어옴 */
   margin: 0 auto;
-  aspect-ratio: 0.36;
   box-shadow:
     0 1px 2px rgba(20, 20, 30, 0.04),
     0 8px 24px rgba(20, 20, 30, 0.05);
+  box-sizing: border-box;
 }
 
 .slot {
@@ -176,12 +175,23 @@
 }
 
 .slotEmpty {
+  position: absolute;
+  inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   color: #b0b0b6;
-  font-size: 13px;
-  font-weight: 600;
+  background:
+    radial-gradient(circle at center, #f2f2f5 0%, #ececef 100%);
+}
+
+.slotEmptyLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #9b9ba2;
 }
 
 .favorite {
@@ -294,8 +304,5 @@
   }
   .title { font-size: 14px; }
   .nextBtn { padding: 10px 18px; font-size: 13px; }
-  .frameCard {
-    /* 모바일: 폰 비율 고려 — 헤더/힌트/프리셋이 차지하는 공간 빼고 60vh 기준으로 0.36 비율 유지 */
-    width: min(280px, 100%, calc(60vh * 0.36));
-  }
+  /* 모바일에서도 inline style이 driving — 별도 width 강제 안 함 */
 }

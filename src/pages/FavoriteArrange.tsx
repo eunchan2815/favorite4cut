@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BackButton from '../components/BackButton';
+import { usePreviewBox } from '../hooks/usePreviewBox';
 import { useProject } from '../store/ProjectContext';
 import type { FavoriteOverlay } from '../types';
 import styles from './FavoriteArrange.module.css';
@@ -46,6 +47,11 @@ type DragState =
 export default function FavoriteArrange() {
   const { project, setSlotFavorite } = useProject();
   const navigate = useNavigate();
+  const previewBox = usePreviewBox();
+  // 4-vertical 슬롯 비율 기준 — DefaultArrange의 FramePreview와 동일하게 box 안에 fit
+  const FRAME_ASPECT = 0.36;
+  const fitH = Math.min(previewBox.h, previewBox.w / FRAME_ASPECT);
+  const fitW = fitH * FRAME_ASPECT;
 
   const slotRefs = useRef<(HTMLDivElement | null)[]>([]);
   const dragRef = useRef<DragState | null>(null);
@@ -340,7 +346,11 @@ export default function FavoriteArrange() {
           </div>
         </div>
 
-        <div className={styles.frameCard} onPointerDown={handleCardPointerDown}>
+        <div
+          className={styles.frameCard}
+          style={{ width: fitW, height: fitH }}
+          onPointerDown={handleCardPointerDown}
+        >
           {project.slots.map((slot, i) => {
             const fav = slot.favorite;
             const isSelected = selectedSlot === i;
@@ -435,7 +445,24 @@ export default function FavoriteArrange() {
                     </div>
                   </>
                 ) : (
-                  <span className={styles.slotEmpty}>(비움)</span>
+                  <div className={styles.slotEmpty}>
+                    <svg
+                      width="22"
+                      height="22"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
+                    >
+                      <rect x="3" y="3" width="18" height="18" rx="3" />
+                      <circle cx="8.5" cy="9.5" r="1.6" />
+                      <path d="M21 15l-5-5-9 9" />
+                    </svg>
+                    <span className={styles.slotEmptyLabel}>비어있어요</span>
+                  </div>
                 )}
               </div>
             );

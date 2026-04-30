@@ -53,6 +53,7 @@ export interface PlacedSticker {
 export interface Slot {
   index: number;
   photo: string | null;     // dataURL
+  captureIdx?: number | null; // 어느 capture에서 왔는지 (중복 URL일 때도 정확한 매칭)
   favorite?: FavoriteOverlay;
 }
 

@@ -154,6 +154,7 @@ export default function DefaultDecorate() {
   const [autoSelectStickerId, setAutoSelectStickerId] = useState<string | null>(null);
   const dragStartY = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
+  const touchStartState = useRef<SheetState | null>(null);
 
   // 스티커 추가 — 새 id로 자동 선택 + 시트 닫기
   const handleAddSticker = (stickerLibId: string) => {
@@ -263,21 +264,27 @@ export default function DefaultDecorate() {
 
   const onContentTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     touchStartY.current = e.touches[0]?.clientY ?? null;
+    touchStartState.current = sheetState;
   };
 
   const onContentTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
     if (touchStartY.current == null) return;
     if (e.currentTarget.scrollTop !== 0) return;
     const dy = (e.touches[0]?.clientY ?? 0) - touchStartY.current;
-    if (dy > 30 && sheetState === 'expanded') {
-      setSheetState('half');
-    } else if (dy < -30 && sheetState === 'half') {
+    // 한 swipe = 한 단계만 이동 (touchStart 시점의 상태 기준)
+    const start = touchStartState.current;
+    if (start == null) return;
+    if (dy > 30) {
+      if (start === 'expanded') setSheetState('half');
+      else if (start === 'half') setSheetState('closed');
+    } else if (dy < -30 && start === 'half') {
       setSheetState('expanded');
     }
   };
 
   const onContentTouchEnd = () => {
     touchStartY.current = null;
+    touchStartState.current = null;
   };
 
   const handleDone = () => {

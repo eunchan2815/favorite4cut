@@ -75,32 +75,61 @@ export default function DefaultSave() {
     toastTimer.current = window.setTimeout(() => setToast(null), 2400);
   };
 
-  const handleDownload = () => {
-    if (!previewUrl) return;
-    const a = document.createElement('a');
-    a.href = previewUrl;
+  const buildFile = (): File | null => {
+    if (!blob) return null;
     const now = new Date();
     const ymd = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-    a.download = `favorite4cut-${ymd}.png`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    showToast('이미지를 저장했어요');
+    return new File([blob], `favorite4cut-${ymd}.png`, { type: 'image/png' });
   };
 
-  const handleShareInstagram = async () => {
-    if (!blob) return;
-    const file = new File([blob], 'favorite4cut.png', { type: 'image/png' });
+  const isIOS = (): boolean => {
+    if (typeof navigator === 'undefined') return false;
+    const ua = navigator.userAgent;
+    return /iPad|iPhone|iPod/.test(ua) ||
+      (navigator.platform === 'MacIntel' && (navigator as Navigator & { maxTouchPoints?: number }).maxTouchPoints! > 1);
+  };
 
-    // 1) Web Share API (iOS Safari · Android Chrome)
-    const navAny = navigator as Navigator & {
-      canShare?: (data: ShareData) => boolean;
-    };
+  const handleDownload = async () => {
+    const file = buildFile();
+    if (!file || !previewUrl) return;
+
+    // 모바일 — Web Share API 우선 (공유 시트에서 "이미지 저장" 선택 → 사진 앱)
+    const navAny = navigator as Navigator & { canShare?: (data: ShareData) => boolean };
     if (navAny.canShare?.({ files: [file] }) && typeof navigator.share === 'function') {
       try {
         setBusy(true);
-        await navigator.share({ files: [file], title: '인생네컷' });
-        showToast('공유 시트에서 인스타그램 → 스토리를 선택해주세요');
+        await navigator.share({ files: [file] });
+        showToast('공유 시트에서 "이미지 저장"을 선택해주세요');
+        return;
+      } catch (e) {
+        if ((e as DOMException)?.name === 'AbortError') return;
+        // share 실패면 anchor download 폴백
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    // 데스크톱 (또는 share 미지원) — anchor download
+    const a = document.createElement('a');
+    a.href = previewUrl;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    showToast('다운로드 폴더에 저장됐어요');
+  };
+
+  const handleShareInstagram = async () => {
+    const file = buildFile();
+    if (!file) return;
+
+    // Web Share API — 파일 첨부 가능한 경우 (iOS Safari · Android Chrome 모두 지원)
+    const navAny = navigator as Navigator & { canShare?: (data: ShareData) => boolean };
+    if (navAny.canShare?.({ files: [file] }) && typeof navigator.share === 'function') {
+      try {
+        setBusy(true);
+        await navigator.share({ files: [file], title: '최애네컷' });
+        showToast('공유 시트에서 Instagram → 스토리를 선택해주세요');
         return;
       } catch (e) {
         if ((e as DOMException)?.name === 'AbortError') return;
@@ -109,13 +138,20 @@ export default function DefaultSave() {
       }
     }
 
-    // 2) Fallback — auto-download then open Instagram Stories deep link
-    handleDownload();
-    showToast('인스타그램 앱이 열리면 스토리에 직접 올려주세요');
-    setTimeout(() => {
-      const link = `instagram-stories://share?source_application=${META_APP_ID}`;
-      window.location.href = link;
-    }, 600);
+    // iOS 폴백 — instagram-stories:// deep link (단, 이미지를 자동 첨부 못함, Android는 미동작)
+    if (isIOS()) {
+      await handleDownload();
+      showToast('내려받은 후 인스타그램 스토리에 올려주세요');
+      setTimeout(() => {
+        const link = `instagram-stories://share?source_application=${META_APP_ID}`;
+        window.location.href = link;
+      }, 600);
+      return;
+    }
+
+    // 그 외(Android Web Share 안 되는 경우 / 데스크톱) — 그냥 다운로드
+    await handleDownload();
+    showToast('내려받은 후 인스타그램 앱에서 직접 스토리에 올려주세요');
   };
 
   const handleHome = () => {
@@ -202,7 +238,7 @@ export default function DefaultSave() {
             onClick={handleDownload}
             disabled={!blob}
           >
-            이미지 저장
+            이미지 내려받기
           </button>
           <button
             type="button"
@@ -220,8 +256,8 @@ export default function DefaultSave() {
         </div>
 
         <p className={styles.note}>
-          모바일에서는 <strong>공유 시트로 인스타 → 스토리</strong>를 선택할 수 있어요.<br />
-          데스크톱은 이미지 저장 후 폰으로 옮겨 올려주세요.
+          모바일은 공유 시트에서 <strong>"이미지 저장"</strong>을 선택하면 사진 앱에 저장돼요.<br />
+          인스타 스토리는 같은 시트에서 <strong>Instagram → 스토리</strong>를 선택해주세요.
         </p>
       </div>
 

@@ -24,7 +24,6 @@ export default function DefaultSave() {
   useEffect(() => {
     if (blob) return;
     let cancelled = false;
-    let url: string | null = null;
     let retryTimerId: number | null = null;
 
     const isMobile =
@@ -41,9 +40,8 @@ export default function DefaultSave() {
         try {
           const b = await composeFrame(project, frame, { width: ATTEMPTS[i] });
           if (cancelled) return;
-          url = URL.createObjectURL(b);
           setBlob(b);
-          setPreviewUrl(url);
+          setPreviewUrl(URL.createObjectURL(b));
           setError(null);
           return;
         } catch (e) {
@@ -63,11 +61,16 @@ export default function DefaultSave() {
 
     return () => {
       cancelled = true;
-      if (url) URL.revokeObjectURL(url);
       if (retryTimerId != null) window.clearTimeout(retryTimerId);
       if (toastTimer.current != null) window.clearTimeout(toastTimer.current);
     };
   }, [project, frame, blob]);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -91,7 +94,7 @@ export default function DefaultSave() {
 
   const handleDownload = async () => {
     const file = buildFile();
-    if (!file || !previewUrl) return;
+    if (!file || !previewUrl || !blob) return;
 
     // 모바일 — Web Share API 우선 (공유 시트에서 "이미지 저장" 선택 → 사진 앱)
     const navAny = navigator as Navigator & { canShare?: (data: ShareData) => boolean };
@@ -110,12 +113,16 @@ export default function DefaultSave() {
     }
 
     // 데스크톱 (또는 share 미지원) — anchor download
+    // Keep the preview URL alive for the <img>, and use a separate URL for
+    // downloading so browser download handling cannot race URL cleanup.
+    const downloadUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = previewUrl;
+    a.href = downloadUrl;
     a.download = file.name;
     document.body.appendChild(a);
     a.click();
     a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
     showToast('다운로드 폴더에 저장됐어요');
   };
 
